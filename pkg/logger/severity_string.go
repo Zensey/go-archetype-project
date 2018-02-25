@@ -2,7 +2,7 @@
 
 package logger
 
-import "fmt"
+import "strconv"
 
 const _Severity_name = "L_EMERGL_ALERTL_CRITL_ERRL_WARNINGL_NOTICEL_INFOL_DEBUG"
 
@@ -10,7 +10,7 @@ var _Severity_index = [...]uint8{0, 7, 14, 20, 25, 34, 42, 48, 55}
 
 func (i Severity) String() string {
 	if i < 0 || i >= Severity(len(_Severity_index)-1) {
-		return fmt.Sprintf("Severity(%d)", i)
+		return "Severity(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
 	return _Severity_name[_Severity_index[i]:_Severity_index[i+1]]
 }

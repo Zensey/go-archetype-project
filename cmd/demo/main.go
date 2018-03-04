@@ -2,16 +2,16 @@ package main
 
 import (
 	"dev.rubetek.com/go-archetype-project/pkg/logger"
-	"log/syslog"
 )
 
-var l1 logger.Logger
+var l logger.Logger
 func init() {
-	l1,_ = logger.NewLogger( syslog.Priority(logger.L_INFO), "demo")
+	l,_ = logger.NewLogger( logger.LogLevelInfo, "demo", "console")
 }
 
 func main() {
-	l1.Info("Hello world !")
-	l1.Info_f("Hello world %d !\n", 123)
+	l.Info("Hello world !")
+	l.Debug("Hello world !")
+	l.Infof("Hello world %d !", 123)
 	return
 }

@@ -2,73 +2,106 @@ package logger
 
 import (
 	"fmt"
-	"log/syslog"
-	"time"
 )
 
-//go:generate stringer -type=Severity
-type Severity Priority
+type LogLevel int
 
 const (
-	L_EMERG   Severity = Severity(LOG_EMERG)
-	L_ALERT   Severity = Severity(LOG_ALERT)
-	L_CRIT    Severity = Severity(LOG_CRIT)
-	L_ERR     Severity = Severity(LOG_ERR)
-	L_WARNING Severity = Severity(LOG_WARNING)
-	L_NOTICE  Severity = Severity(LOG_NOTICE)
-	L_INFO    Severity = Severity(LOG_INFO)
-	L_DEBUG   Severity = Severity(LOG_DEBUG)
+	LogLevelNull LogLevel = iota
+	LogLevelError
+	LogLevelWarning
+	LogLevelInfo
+	LogLevelDebug
+	LogLevelTrace
 )
 
-//var Level = L_DEBUG // L_INFO
-//const f = log.Ltime |log.Lmicroseconds | log.Lshortfile
-//const f = 0
-//var Log = log.New(os.Stdout, "",  f)
-
-type Logger struct {
-	slog *syslog.Writer
+var logLevels = map[LogLevel]string{
+	LogLevelNull:    "",
+	LogLevelError:   "error",
+	LogLevelWarning: "warning",
+	LogLevelInfo:    "info",
+	LogLevelDebug:   "debug",
+	LogLevelTrace:   "trace",
 }
 
-func NewLogger(priority syslog.Priority, tag string) (l Logger, err error) {
-	l.slog, err = syslog.New(priority, tag)
+type LoggerBackend interface {
+	Write(lev LogLevel, tag, l string)
+}
+
+type Logger struct {
+	tag   string
+	level LogLevel
+	back  LoggerBackend
+}
+
+//////////////
+
+func NewLogger(lev LogLevel, tag, back string) (l Logger, err error) {
+	l.tag = tag
+	l.level = lev
+
+	switch back {
+	case "console":
+		l.back = newConsoleBackend()
+	case "syslog":
+		l.back = newSyslogBackend(lev, tag)
+	case "null":
+		l.back = newNullBackend()
+	default:
+		panic("not supported logging backend")
+	}
 	return
 }
 
-func (l *Logger) Info(a ...interface{}) {
-	l.LogHelperln(L_INFO, a...)
-}
+
 func (l *Logger) Error(a ...interface{}) {
-	l.LogHelperln(L_ERR, a...)
+	l.logPrint(LogLevelError, a...)
 }
+func (l *Logger) Errorf(f string, a ...interface{}) {
+	l.logPrintf(LogLevelError, f, a...)
+}
+
+func (l *Logger) Warning(a ...interface{}) {
+	l.logPrint(LogLevelWarning, a...)
+}
+func (l *Logger) Warningf(f string, a ...interface{}) {
+	l.logPrintf(LogLevelWarning, f, a...)
+}
+
+func (l *Logger) Info(a ...interface{}) {
+	l.logPrint(LogLevelInfo, a...)
+}
+func (l *Logger) Infof(f string, a ...interface{}) {
+	l.logPrintf(LogLevelInfo, f, a...)
+}
+
 func (l *Logger) Debug(a ...interface{}) {
-	l.LogHelperln(L_DEBUG, a...)
+	l.logPrint(LogLevelDebug, a...)
+}
+func (l *Logger) Debugf(f string, a ...interface{}) {
+	l.logPrintf(LogLevelDebug, f, a...)
 }
 
-func (l *Logger) Info_f(f string, a ...interface{}) {
-	s := fmt.Sprintf(f, a...)
-	l.LogHelperln(L_INFO, s)
+func (l *Logger) Trace(a ...interface{}) {
+	l.logPrint(LogLevelTrace, a...)
 }
-func (l *Logger) Error_f(f string, a ...interface{}) {
-	s := fmt.Sprintf(f, a...)
-	l.LogHelperln(L_ERR, s)
-}
-func (l *Logger) Debug_f(f string, a ...interface{}) {
-	s := fmt.Sprintf(f, a...)
-	l.LogHelperln(L_DEBUG, s)
+func (l *Logger) Tracef(f string, a ...interface{}) {
+	l.logPrintf(LogLevelTrace, f, a...)
 }
 
-func (l *Logger) LogHelperln(sev Severity, a ...interface{}) {
-	prefix := []interface{}{time.Now().Format("Jan _2 15:04:05.000") + " | " + sev.String() + " >"}
-	a = append(prefix, a...)
-	s_ := fmt.Sprintln(a...)
-	fmt.Print(s_)
+//////
 
-	switch sev {
-	case L_INFO:
-		l.slog.Info(s_)
-	case L_ERR:
-		l.slog.Err(s_)
-	case L_DEBUG:
-		l.slog.Debug(s_)
+func (l *Logger) logPrintf(sev LogLevel, format string, a ...interface{}) {
+	l.toBackEnd(sev, fmt.Sprintf(format, a...))
+}
+
+func (l *Logger) logPrint(sev LogLevel, a ...interface{}) {
+	l.toBackEnd(sev, fmt.Sprint(a...))
+}
+
+func (l *Logger) toBackEnd(level LogLevel, s string) {
+	if l.level < level {
+		return
 	}
+	l.back.Write(level, l.tag, s)
 }

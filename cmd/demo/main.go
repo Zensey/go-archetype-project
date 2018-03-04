@@ -6,7 +6,7 @@ import (
 
 var l logger.Logger
 func init() {
-	l,_ = logger.NewLogger( logger.LogLevelInfo, "demo", "console")
+	l,_ = logger.NewLogger( logger.LogLevelInfo, "demo", "file")
 }
 
 func main() {

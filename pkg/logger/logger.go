@@ -45,6 +45,8 @@ func NewLogger(lev LogLevel, tag, back string) (l Logger, err error) {
 		l.back = newConsoleBackend()
 	case "syslog":
 		l.back = newSyslogBackend(lev, tag)
+	case "file":
+		l.back = newFileBackend(lev, tag)
 	case "null":
 		l.back = newNullBackend()
 	default:

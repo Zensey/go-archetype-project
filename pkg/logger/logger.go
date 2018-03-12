@@ -98,7 +98,9 @@ func (l *Logger) logPrintf(sev LogLevel, format string, a ...interface{}) {
 }
 
 func (l *Logger) logPrint(sev LogLevel, a ...interface{}) {
-	l.toBackEnd(sev, fmt.Sprint(a...))
+	s := fmt.Sprintln(a...)
+	s = s[0:len(s)-1]
+	l.toBackEnd(sev, s)
 }
 
 func (l *Logger) toBackEnd(level LogLevel, s string) {

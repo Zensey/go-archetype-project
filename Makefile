@@ -49,3 +49,7 @@ clean:
 
 strip-$(BINARY): $(BINARY)
 	strip -s $(GOBIN)/$(BINARY)
+
+docker-build:
+	docker build -t go-archetype-project .
+	docker run --rm --publish 8080:8080 -it go-archetype-project

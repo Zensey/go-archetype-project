@@ -35,19 +35,27 @@ type Logger struct {
 }
 
 //////////////
+type BackendID int
 
-func NewLogger(lev LogLevel, tag, back string) (l Logger, err error) {
+const (
+	BackendConsole BackendID = iota
+	BackendSyslog
+	BackendFile
+	BackendNull
+)
+
+func NewLogger(lev LogLevel, tag string, backend BackendID) (l Logger, err error) {
 	l.tag = tag
 	l.level = lev
 
-	switch back {
-	case "console":
+	switch backend {
+	case BackendConsole:
 		l.back = newConsoleBackend()
-	case "syslog":
+	case BackendSyslog:
 		l.back = newSyslogBackend(lev, tag)
-	case "file":
+	case BackendFile:
 		l.back = newFileBackend(lev, tag)
-	case "null":
+	case BackendNull:
 		l.back = newNullBackend()
 	default:
 		panic("not supported logging backend")

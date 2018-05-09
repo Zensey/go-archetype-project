@@ -4,14 +4,16 @@ import (
 	"dev.rubetek.com/go-archetype-project/pkg/logger"
 )
 
-var l logger.Logger
+var (
+	l logger.Logger
+	version string
+)
+
 func init() {
-	l,_ = logger.NewLogger( logger.LogLevelInfo, "demo", "file")
+	l,_ = logger.NewLogger( logger.LogLevelInfo, "demo", logger.BackendConsole)
 }
 
 func main() {
-	l.Info("Hello world !")
-	l.Debug("Hello world !")
-	l.Infof("Hello world %d !", 123)
+	l.Infof("Hello world ! version %s !", version)
 	return
 }

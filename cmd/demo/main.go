@@ -14,6 +14,6 @@ func init() {
 }
 
 func main() {
-	l.Infof("Hello world ! version %s !", version)
+	l.Infof("Hello world ! version %s", version)
 	return
 }

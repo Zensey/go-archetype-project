@@ -6,22 +6,23 @@ import (
 	"os/signal"
 	"syscall"
 	"context"
+	"dev.rubetek.com/go-archetype-project/pkg/logger"
 )
 
 type ShutdownFn func(ctx context.Context) error
 
-func graceful(shutdown ShutdownFn, timeout time.Duration) {
+func graceful(shutdown ShutdownFn, timeout time.Duration, log logger.Logger) {
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 	<-stop
 
-	l.Info("Shutting down ...")
+	log.Info("Shutting down ...")
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	if err := shutdown(ctx); err != nil {
-		l.Errorf("Error: %v\n", err)
+		log.Errorf("Error: %v\n", err)
 	} else {
-		l.Info("Server stopped")
+		log.Info("Server stopped")
 	}
 }

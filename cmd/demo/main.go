@@ -6,23 +6,16 @@ import (
 	"time"
 )
 
-var (
-	l       logger.Logger
-	version string
-)
-
-func init() {
-	l, _ = logger.NewLogger(logger.LogLevelInfo, "demo", logger.BackendConsole)
-}
+var	version string
 
 func main() {
-	l,_ = logger.NewLogger(logger.LogLevelInfo, "demo", logger.BackendConsole)
+	l,_ := logger.NewLogger(logger.LogLevelInfo, "demo", logger.BackendConsole)
 	s := &http.Server{
 		Addr:    ":8080",
-		Handler: NewHandler(),
+		Handler: NewHandler(l),
 	}
 
-	go graceful(s.Shutdown, 10 * time.Second)
+	go graceful(s.Shutdown, 10 * time.Second, l)
 	l.Infof("Listening on http://0.0.0.0%s", s.Addr)
 
 	err := s.ListenAndServe()

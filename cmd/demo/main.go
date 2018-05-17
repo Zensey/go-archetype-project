@@ -8,7 +8,7 @@ import (
 
 var	version string
 
-func main() {
+func Init () {
 	l,_ := logger.NewLogger(logger.LogLevelInfo, "demo", logger.BackendConsole)
 	s := &http.Server{
 		Addr:    ":8080",
@@ -22,4 +22,8 @@ func main() {
 	if err != http.ErrServerClosed {
 		l.Error(err)
 	}
+}
+
+func main() {
+	Init()
 }

@@ -7,12 +7,11 @@ import (
 	_ "image/gif"
 	_ "image/png"
 	"image"
-	"image/png"
-	"bytes"
-	"encoding/base64"
 	"github.com/nfnt/resize"
-	"encoding/json"
 	"strings"
+	"bytes"
+	"image/png"
+	"encoding/base64"
 )
 
 type HandlerCtx struct {
@@ -41,73 +40,80 @@ func (s *HandlerCtx) index(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		w.Header().Set("Content-Type", "text/html")
-		w.Write([]byte("<html><body>"))
+		var thumbnails []image.Image
 		for {
 			nr, err := reader.NextPart()
-			if nr == nil {
+			if err != nil {
 				s.l.Info("nr", err)
 				break
 			}
-			s.l.Info("nr", err, nr.FileName())
+			s.l.Info("nr", nr.FileName())
 
 			im, _, err := image.Decode(nr)
 			if err != nil {
+				s.l.Info("nr", err)
+				break
 				w.WriteHeader(http.StatusInternalServerError)
 				w.Write([]byte("500"))
 				return
 			}
-			thumbnail := resize.Resize(100, 100, im, resize.NearestNeighbor)
+			thumbnails = append(thumbnails, resize.Resize(100, 100, im, resize.NearestNeighbor))
+			nr.Close()
+		}
 
-			var buff bytes.Buffer
-			png.Encode(&buff, thumbnail)
+		w.Header().Set("Content-Type", "text/html")
+		w.Write([]byte("<html><body>"))
+		for _,t := range thumbnails {
+			buff := bytes.Buffer{}
+			png.Encode(&buff, t)
+
 			w.Write([]byte(`<img src="data:image/png;base64,`))
 			encoder := base64.NewEncoder(base64.StdEncoding, w)
 			encoder.Write(buff.Bytes())
 			encoder.Close()
 			w.Write([]byte(`"/>`))
-			nr.Close()
 		}
 		w.Write([]byte("</html></body>"))
 	}
-	if ok && strings.HasPrefix(hh[0], "application/json") {
-		req := make(TResponse, 0)
-		decoder := json.NewDecoder(r.Body)
-		err := decoder.Decode(&req)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte("500"))
-			s.l.Info(err)
-			return
-		}
 
-		resp := make(TResponse, 0)
-		w.Header().Set("Content-Type", "application/json")
-		for _, v := range req {
-			ii := strings.Index(v, "base64,")
-			if ii < 0 {
-				continue
-			}
-			v = v[ii+len("base64,"):]
-			input := base64.NewDecoder(base64.StdEncoding, strings.NewReader(v))
-			im, _, err := image.Decode(input)
-			if err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte("500"))
-				return
-			}
-			thumbnail := resize.Resize(100, 100, im, resize.NearestNeighbor)
-
-			var buff bytes.Buffer
-			png.Encode(&buff, thumbnail)
-			encoded := `data:image/png;base64,`
-			encoded += base64.StdEncoding.EncodeToString(buff.Bytes())
-
-			resp = append(resp, encoded)
-		}
-		encoder := json.NewEncoder(w)
-		encoder.Encode(resp)
-	}
+	//if ok && strings.HasPrefix(hh[0], "application/json") {
+	//	req := make(TResponse, 0)
+	//	decoder := json.NewDecoder(r.Body)
+	//	err := decoder.Decode(&req)
+	//	if err != nil {
+	//		w.WriteHeader(http.StatusInternalServerError)
+	//		w.Write([]byte("500"))
+	//		s.l.Info(err)
+	//		return
+	//	}
+	//
+	//	resp := make(TResponse, 0)
+	//	w.Header().Set("Content-Type", "application/json")
+	//	for _, v := range req {
+	//		ii := strings.Index(v, "base64,")
+	//		if ii < 0 {
+	//			continue
+	//		}
+	//		v = v[ii+len("base64,"):]
+	//		input := base64.NewDecoder(base64.StdEncoding, strings.NewReader(v))
+	//		im, _, err := image.Decode(input)
+	//		if err != nil {
+	//			w.WriteHeader(http.StatusInternalServerError)
+	//			w.Write([]byte("500"))
+	//			return
+	//		}
+	//		thumbnail := resize.Resize(100, 100, im, resize.NearestNeighbor)
+	//
+	//		var buff bytes.Buffer
+	//		png.Encode(&buff, thumbnail)
+	//		encoded := `data:image/png;base64,`
+	//		encoded += base64.StdEncoding.EncodeToString(buff.Bytes())
+	//
+	//		resp = append(resp, encoded)
+	//	}
+	//	encoder := json.NewEncoder(w)
+	//	encoder.Encode(resp)
+	//}
 }
 
 func (s *HandlerCtx) ServeHTTP(w http.ResponseWriter, r *http.Request) {

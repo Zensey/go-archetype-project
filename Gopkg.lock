@@ -8,9 +8,18 @@
   packages = ["."]
   revision = "83c6a9932646f83e3267f353373d47347b6036b2"
 
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/net"
+  packages = [
+    "html",
+    "html/atom"
+  ]
+  revision = "2491c5de3490fced2f6cff376127c667efeed857"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "91a836fd58a7f832001f0cbcadf9732e2314f8af4cce744ebae11772f8e824db"
+  inputs-digest = "0d831bb890efc4634f1b81bf7671d407f1ae2b78a143ed1aa456427267910197"
   solver-name = "gps-cdcl"
   solver-version = 1

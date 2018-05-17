@@ -8,7 +8,7 @@ import (
 
 var	version string
 
-func Init () {
+func InitServer() {
 	l,_ := logger.NewLogger(logger.LogLevelInfo, "demo", logger.BackendConsole)
 	s := &http.Server{
 		Addr:    ":8080",
@@ -25,5 +25,5 @@ func Init () {
 }
 
 func main() {
-	Init()
+	InitServer()
 }

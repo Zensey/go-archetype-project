@@ -12,7 +12,11 @@ import (
 	"bytes"
 	"image/png"
 	"encoding/base64"
+	"encoding/json"
 )
+
+type TResponse []string
+type TRequest  []string
 
 type HandlerCtx struct {
 	mux    *http.ServeMux
@@ -26,8 +30,6 @@ func NewHandler(log logger.Logger) *HandlerCtx {
 	s.mux.HandleFunc("/", s.index)
 	return s
 }
-
-type TResponse []string
 
 func (s *HandlerCtx) index(w http.ResponseWriter, r *http.Request) {
 	s.l.Info("/")
@@ -44,14 +46,14 @@ func (s *HandlerCtx) index(w http.ResponseWriter, r *http.Request) {
 		for {
 			nr, err := reader.NextPart()
 			if err != nil {
-				s.l.Info("nr", err)
+				s.l.Info("s>", err)
 				break
 			}
-			s.l.Info("nr", nr.FileName())
+			s.l.Info("s> fileName", nr.FileName())
 
 			im, _, err := image.Decode(nr)
 			if err != nil {
-				s.l.Info("nr", err)
+				s.l.Info("s>", err)
 				break
 				w.WriteHeader(http.StatusInternalServerError)
 				w.Write([]byte("500"))
@@ -76,44 +78,42 @@ func (s *HandlerCtx) index(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("</html></body>"))
 	}
 
-	//if ok && strings.HasPrefix(hh[0], "application/json") {
-	//	req := make(TResponse, 0)
-	//	decoder := json.NewDecoder(r.Body)
-	//	err := decoder.Decode(&req)
-	//	if err != nil {
-	//		w.WriteHeader(http.StatusInternalServerError)
-	//		w.Write([]byte("500"))
-	//		s.l.Info(err)
-	//		return
-	//	}
-	//
-	//	resp := make(TResponse, 0)
-	//	w.Header().Set("Content-Type", "application/json")
-	//	for _, v := range req {
-	//		ii := strings.Index(v, "base64,")
-	//		if ii < 0 {
-	//			continue
-	//		}
-	//		v = v[ii+len("base64,"):]
-	//		input := base64.NewDecoder(base64.StdEncoding, strings.NewReader(v))
-	//		im, _, err := image.Decode(input)
-	//		if err != nil {
-	//			w.WriteHeader(http.StatusInternalServerError)
-	//			w.Write([]byte("500"))
-	//			return
-	//		}
-	//		thumbnail := resize.Resize(100, 100, im, resize.NearestNeighbor)
-	//
-	//		var buff bytes.Buffer
-	//		png.Encode(&buff, thumbnail)
-	//		encoded := `data:image/png;base64,`
-	//		encoded += base64.StdEncoding.EncodeToString(buff.Bytes())
-	//
-	//		resp = append(resp, encoded)
-	//	}
-	//	encoder := json.NewEncoder(w)
-	//	encoder.Encode(resp)
-	//}
+	if ok && strings.HasPrefix(hh[0], "application/json") {
+		req := make(TRequest, 0)
+		decoder := json.NewDecoder(r.Body)
+		err := decoder.Decode(&req)
+		if err != nil {
+			s.l.Info("s>", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("500"))
+			s.l.Info(err)
+			return
+		}
+
+		resp := make(TResponse, 0)
+		w.Header().Set("Content-Type", "application/json")
+		for _, v := range req {
+			input := base64.NewDecoder(base64.StdEncoding, strings.NewReader(v))
+			im, imageType, err := image.Decode(input)
+			if err != nil {
+				s.l.Info("s> image.Decode", err)
+
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte("500"))
+				return
+			}
+			s.l.Info("s> got", imageType)
+			thumbnail := resize.Resize(2, 2, im, resize.NearestNeighbor)
+
+			var buff bytes.Buffer
+			png.Encode(&buff, thumbnail)
+			encoded := base64.StdEncoding.EncodeToString(buff.Bytes())
+
+			resp = append(resp, encoded)
+		}
+		encoder := json.NewEncoder(w)
+		encoder.Encode(resp)
+	}
 }
 
 func (s *HandlerCtx) ServeHTTP(w http.ResponseWriter, r *http.Request) {

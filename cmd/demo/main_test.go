@@ -11,23 +11,25 @@ import (
 	"mime/multipart"
 	"io"
 	"net/http"
-	"golang.org/x/net/html"
 	"bufio"
 	"encoding/base64"
 	"encoding/json"
 	"path"
+	"net/textproto"
 )
 
-const url = "http://localhost:8080/"
 func init() {
 	fmt.Println("Test init()")
 	go InitServer()
 }
 
-func ReadFilesInDir(handler func(fileName string, imageFile *os.File)) (countImgs int) {
-	countImgs = 0
 
+const serviceUrl = "http://localhost:8080/upload"
+
+
+func ReadFilesInDir(handler func(fileName string, imageFile *os.File)) (countImgs int) {
 	testDir := "../../test_data/"
+	countImgs = 0
 	files, err := ioutil.ReadDir(testDir)
 	if err != nil {
 		log.Fatal(err)
@@ -44,11 +46,46 @@ func ReadFilesInDir(handler func(fileName string, imageFile *os.File)) (countImg
 			continue
 		} else {
 			//fmt.Println(testDir + f.Name(), imageType)
-			countImgs ++
+			countImgs++
 			imageFile.Seek(0,0)
 			handler(testDir + f.Name(), imageFile)
 		}
 		imageFile.Close()
+	}
+	return
+}
+
+func handleResp(req *http.Request, countImgs int, t *testing.T) (err error){
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Print(err)
+		t.Fail()
+		return
+	}
+
+	//fmt.Println("response Status:", resp.Status)
+	//fmt.Println("response Headers:", resp.Header)
+	obj := make(TResponse, 0)
+	err = json.NewDecoder(resp.Body).Decode(&obj)
+	if err != nil {
+		return err
+	}
+	for _,v := range obj {
+		b, err := base64.StdEncoding.DecodeString(v)
+		if err != nil {
+			continue
+		}
+		_, imageType, err := image.Decode(bytes.NewReader(b))
+		if err != nil {
+			continue
+		}
+		fmt.Println("got", imageType)
+		countImgs--
+	}
+	fmt.Println("N_Sent - N_Got =", countImgs)
+	if countImgs != 0 {
+		t.Fail()
 	}
 	return
 }
@@ -73,6 +110,15 @@ func Test_Multipart(t *testing.T) {
 	}
 	countImgs := ReadFilesInDir(handler)
 
+	jsonData := TRequest_{Urls: []string{"https://www.google.ru/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png"}}
+	countImgs += len(jsonData.Urls)
+
+	hdr := make(textproto.MIMEHeader)
+	hdr.Set("Content-Type", "text/json")
+	hdr.Set("Content-Disposition", "form-data; name=\"urls\"")
+	fileWriter,_ := writer.CreatePart(hdr)
+	json.NewEncoder(fileWriter).Encode(jsonData)
+
 	err := writer.Close()
 	if err != nil {
 		fmt.Print(err)
@@ -80,38 +126,16 @@ func Test_Multipart(t *testing.T) {
 		return
 	}
 
-	req, err := http.NewRequest("POST", url, body)
+	req, err := http.NewRequest("POST", serviceUrl, body)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
-	client := &http.Client{}
-	resp, err := client.Do(req)
+
+	err = handleResp(req, countImgs, t)
 	if err != nil {
 		fmt.Print(err)
 		t.Fail()
-		return
-	}
-
-	//fmt.Println("response Status:", resp.Status)
-	//fmt.Println("response Headers:", resp.Header)
-	z := html.NewTokenizer(resp.Body)
-	l: for {
-		tt := z.Next()
-		switch {
-		case tt == html.ErrorToken:
-			break l
-
-		case tt == html.SelfClosingTagToken:
-			tk := z.Token()
-			if tk.Data == "img" {
-				fmt.Println("got")
-				countImgs--
-				continue
-			}
-		}
-	}
-	if countImgs != 0 {
-		t.Fail()
 	}
 }
+
 
 func Test_Json(t *testing.T) {
 	images := make([]string, 0)
@@ -135,39 +159,12 @@ func Test_Json(t *testing.T) {
 	fmt.Println(countImgs)
 
 	b, _ := json.Marshal(images)
-	req, err := http.NewRequest("POST", url, bytes.NewReader(b))
+	req, err := http.NewRequest("POST", serviceUrl, bytes.NewReader(b))
 	req.Header.Set("Content-Type", "application/json")
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		fmt.Print(err)
-		t.Fail()
-		return
-	}
-	//fmt.Println("response Status:", resp.Status)
-	//fmt.Println("response Headers:", resp.Header)
 
-	obj := make(TResponse, 0)
-	err = json.NewDecoder(resp.Body).Decode(&obj)
+	err = handleResp(req, countImgs, t)
 	if err != nil {
 		fmt.Print(err)
-		t.Fail()
-		return
-	}
-	for _,v := range obj {
-		b, err := base64.StdEncoding.DecodeString(v)
-		if err != nil {
-			continue
-		}
-		_, imageType, err := image.Decode(bytes.NewReader(b))
-		if err != nil {
-			continue
-		}
-		fmt.Println("got", imageType)
-		countImgs--
-	}
-	fmt.Println("N_Sent - N_Got =", countImgs)
-	if countImgs != 0 {
 		t.Fail()
 	}
 }

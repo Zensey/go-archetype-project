@@ -17,6 +17,12 @@ import (
 
 type TResponse []string
 type TRequest  []string
+type TRequest_ struct {
+	Urls []string `json:"urls,omitempty"`
+	Imgs []string `json:"imgs,omitempty"`
+}
+
+const thumbDim = 1
 
 type HandlerCtx struct {
 	mux    *http.ServeMux
@@ -27,12 +33,13 @@ func NewHandler(log logger.Logger) *HandlerCtx {
 	s := &HandlerCtx{mux: http.NewServeMux()}
 	s.l = log
 
-	s.mux.HandleFunc("/", s.index)
+	s.mux.HandleFunc("/upload", s.index)
 	return s
 }
 
 func (s *HandlerCtx) index(w http.ResponseWriter, r *http.Request) {
-	s.l.Info("/")
+	s.l.Info(r.RequestURI)
+
 	hh, ok:= r.Header["Content-Type"]
 	if ok && strings.HasPrefix(hh[0], "multipart/form-data;") {
 		reader, err := r.MultipartReader()
@@ -49,33 +56,48 @@ func (s *HandlerCtx) index(w http.ResponseWriter, r *http.Request) {
 				s.l.Info("s>", err)
 				break
 			}
-			s.l.Info("s> fileName", nr.FileName())
+			contentType := nr.Header["Content-Type"][0]
+			s.l.Info("s> fileName", nr.FileName(), contentType, ok, nr.FormName())
 
-			im, _, err := image.Decode(nr)
-			if err != nil {
-				s.l.Info("s>", err)
-				break
-				w.WriteHeader(http.StatusInternalServerError)
-				w.Write([]byte("500"))
-				return
+			switch contentType {
+			case "application/octet-stream":
+				im, _, err := image.Decode(nr)
+				if err != nil {
+					s.l.Info("s>", err)
+					break
+					w.WriteHeader(http.StatusInternalServerError)
+					w.Write([]byte("500"))
+					return
+				}
+				thumbnails = append(thumbnails, resize.Resize(thumbDim, thumbDim, im, resize.NearestNeighbor))
+			case "text/json":
+				r := TRequest_{}
+				json.NewDecoder(nr).Decode(&r)
+				for _,u := range r.Urls {
+					s.l.Info("s>", u)
+
+					resp, err := http.Get(u)
+					if err == nil {
+						im, _, err := image.Decode(resp.Body)
+						if err == nil {
+							thumbnails = append(thumbnails, resize.Resize(thumbDim, thumbDim, im, resize.NearestNeighbor))
+						}
+					}
+				}
 			}
-			thumbnails = append(thumbnails, resize.Resize(100, 100, im, resize.NearestNeighbor))
 			nr.Close()
 		}
 
-		w.Header().Set("Content-Type", "text/html")
-		w.Write([]byte("<html><body>"))
-		for _,t := range thumbnails {
-			buff := bytes.Buffer{}
-			png.Encode(&buff, t)
-
-			w.Write([]byte(`<img src="data:image/png;base64,`))
-			encoder := base64.NewEncoder(base64.StdEncoding, w)
-			encoder.Write(buff.Bytes())
-			encoder.Close()
-			w.Write([]byte(`"/>`))
+		resp := make(TResponse, 0)
+		w.Header().Set("Content-Type", "application/json")
+		for _, v := range thumbnails {
+			var buff bytes.Buffer
+			png.Encode(&buff, v)
+			encoded := base64.StdEncoding.EncodeToString(buff.Bytes())
+			resp = append(resp, encoded)
 		}
-		w.Write([]byte("</html></body>"))
+		encoder := json.NewEncoder(w)
+		encoder.Encode(resp)
 	}
 
 	if ok && strings.HasPrefix(hh[0], "application/json") {
@@ -90,8 +112,7 @@ func (s *HandlerCtx) index(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		resp := make(TResponse, 0)
-		w.Header().Set("Content-Type", "application/json")
+		var thumbnails []image.Image
 		for _, v := range req {
 			input := base64.NewDecoder(base64.StdEncoding, strings.NewReader(v))
 			im, imageType, err := image.Decode(input)
@@ -103,12 +124,15 @@ func (s *HandlerCtx) index(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			s.l.Info("s> got", imageType)
-			thumbnail := resize.Resize(2, 2, im, resize.NearestNeighbor)
+			thumbnails = append(thumbnails, resize.Resize(thumbDim, thumbDim, im, resize.NearestNeighbor))
+		}
 
+		resp := make(TResponse, 0)
+		w.Header().Set("Content-Type", "application/json")
+		for _, v := range thumbnails {
 			var buff bytes.Buffer
-			png.Encode(&buff, thumbnail)
+			png.Encode(&buff, v)
 			encoded := base64.StdEncoding.EncodeToString(buff.Bytes())
-
 			resp = append(resp, encoded)
 		}
 		encoder := json.NewEncoder(w)

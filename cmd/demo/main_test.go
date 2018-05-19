@@ -76,14 +76,14 @@ func handleResp(req *http.Request, countImgs int, t *testing.T) (err error){
 		if err != nil {
 			continue
 		}
-		_, imageType, err := image.Decode(bytes.NewReader(b))
+		im, imageType, err := image.Decode(bytes.NewReader(b))
 		if err != nil {
 			continue
 		}
-		fmt.Println("got", imageType)
+		fmt.Println("test> got", imageType, im.Bounds())
 		countImgs--
 	}
-	fmt.Println("N_Sent - N_Got =", countImgs)
+	fmt.Println("test> N_Sent - N_Got =", countImgs)
 	if countImgs != 0 {
 		t.Fail()
 	}

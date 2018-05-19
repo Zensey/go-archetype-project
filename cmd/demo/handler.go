@@ -1,33 +1,43 @@
 package main
 
 import (
-	"net/http"
-	"dev.rubetek.com/go-archetype-project/pkg/logger"
-	_ "image/jpeg"
-	_ "image/gif"
-	_ "image/png"
-	"image"
-	"strings"
 	"bytes"
-	"image/png"
+	"dev.rubetek.com/go-archetype-project/pkg/logger"
 	"encoding/base64"
 	"encoding/json"
-	"io"
-	"runtime/debug"
 	"github.com/nfnt/resize"
+	"image"
+	_ "image/gif"
+	_ "image/jpeg"
+	"image/png"
+	_ "image/png"
+	"io"
+	"net/http"
+	"runtime/debug"
+	"strings"
 )
 
+const thumbDim = 100
+
 type TResponse struct {
-   Thumbs []string  `json:"thumbs,omitempty"`
-   thumbnails *[]image.Image
+	thumbnails *[]image.Image
+	Thumbs     []string `json:"thumbs,omitempty"`
 }
 
 func NewTResponse() TResponse {
 	return TResponse{thumbnails: &[]image.Image{}}
 }
 
-func (r TResponse) addThumb(im image.Image) {
-	*r.thumbnails = append(*r.thumbnails, resize.Resize(thumbDim, thumbDim, im, resize.NearestNeighbor))
+type decodeAndAddThumb func(rr io.Reader, l logger.Logger)
+
+func (r TResponse) decodeAndAddThumb(rr io.Reader, l logger.Logger) {
+	im, imgType, err := image.Decode(rr)
+	if err != nil {
+		l.Info("s> image.Decode", err)
+	} else {
+		l.Info("s> i got", imgType)
+		*r.thumbnails = append(*r.thumbnails, resize.Resize(thumbDim, thumbDim, im, resize.NearestNeighbor))
+	}
 }
 
 func (r TResponse) writeResp(w http.ResponseWriter) {
@@ -49,48 +59,36 @@ type TRequest struct {
 	Imgs []string `json:"imgs,omitempty"`
 }
 
-func ReadTRequest(r io.Reader) (TRequest, error){
+func ReadTRequest(r io.Reader) (TRequest, error) {
 	obj := TRequest{}
 	err := json.NewDecoder(r).Decode(&obj)
 	return obj, err
 }
 
-func (r *TRequest) handleImgs(s *HandlerCtx, res TResponse) error {
+func (r *TRequest) handleImgs(s *HandlerCtx, handleImg decodeAndAddThumb) error {
 	for _, v := range r.Imgs {
 		input := base64.NewDecoder(base64.StdEncoding, strings.NewReader(v))
-		im, imageType, err := image.Decode(input)
-		if err != nil {
-			s.l.Info("s> image.Decode", err)
-		}
-		s.l.Info("s> i got", imageType)
-		res.addThumb(im)
+		handleImg(input, s.l)
 	}
 	return nil
 }
 
-func (r *TRequest) handleUrls(s *HandlerCtx, res TResponse) error {
-	for _,u := range r.Urls {
+func (r *TRequest) handleUrls(s *HandlerCtx, handleImg decodeAndAddThumb) error {
+	for _, u := range r.Urls {
 		//s.l.Info("s> url", u)
 		resp, err := http.Get(u)
 		if err != nil {
 			s.l.Info("s> get", err)
 			continue
 		}
-		im, _, err := image.Decode(resp.Body)
-		if err != nil {
-			s.l.Info("s> image.Decode", err)
-			continue
-		}
-		res.addThumb(im)
+		handleImg(resp.Body, s.l)
 	}
 	return nil
 }
 
-const thumbDim = 10
-
 type HandlerCtx struct {
-	mux    *http.ServeMux
-	l logger.Logger
+	mux *http.ServeMux
+	l   logger.Logger
 }
 
 func NewHandler(log logger.Logger) *HandlerCtx {
@@ -104,59 +102,51 @@ func (s *HandlerCtx) index(w http.ResponseWriter, r *http.Request) {
 	s.l.Info(r.RequestURI)
 	defer func() {
 		if r := recover(); r != nil {
-			s.l.Infof("%s: %s", r, debug.Stack()) // line 20
+			s.l.Infof("%s: %s", r, debug.Stack())
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte("500"))
 		}
 	}()
 
-	hh, ok:= r.Header["Content-Type"]
-	if ok && strings.HasPrefix(hh[0], "multipart/form-data;") {
+	hh, ok := r.Header["Content-Type"]
+	if ok {
 		resp := NewTResponse()
-		reader, err := r.MultipartReader()
-		if err != nil {
-			panic(err)
-		}
-		for {
-			nr, err := reader.NextPart()
+		switch {
+		case strings.HasPrefix(hh[0], "multipart/form-data;"):
+			reader, err := r.MultipartReader()
 			if err != nil {
-				break
+				panic(err)
 			}
-			contentType := nr.Header["Content-Type"][0]
-			s.l.Info("s> fileName", nr.FileName(), contentType, ok, nr.FormName())
-
-			switch contentType {
-			case "application/octet-stream":
-				im, _, err := image.Decode(nr)
+			for {
+				nr, err := reader.NextPart()
 				if err != nil {
-					s.l.Info("s>", err)
-					continue
+					break
 				}
-				resp.addThumb(im)
+				contentType := nr.Header["Content-Type"][0]
+				//s.l.Info("s> fileName", nr.FileName(), contentType, ok, nr.FormName())
+				switch contentType {
+				case "application/octet-stream":
+					resp.decodeAndAddThumb(nr, s.l)
 
-			case "text/json":
-				req, _ := ReadTRequest(nr)
-				req.handleUrls(s, resp)
+				case "text/json":
+					req, _ := ReadTRequest(nr)
+					req.handleUrls(s, resp.decodeAndAddThumb)
+				}
+				nr.Close()
 			}
-			nr.Close()
-		}
-		resp.writeResp(w)
-	}
 
-	if ok && strings.HasPrefix(hh[0], "application/json") {
-		resp := NewTResponse()
-		req, err := ReadTRequest(r.Body)
-		if err != nil {
-			panic(err)
+		case strings.HasPrefix(hh[0], "application/json"):
+			req, err := ReadTRequest(r.Body)
+			if err != nil {
+				panic(err)
+			}
+			req.handleImgs(s, resp.decodeAndAddThumb)
+			req.handleUrls(s, resp.decodeAndAddThumb)
 		}
-		req.handleImgs(s, resp)
-		req.handleUrls(s, resp)
-
 		resp.writeResp(w)
 	}
 }
 
 func (s *HandlerCtx) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Server", "example Go server")
 	s.mux.ServeHTTP(w, r)
 }

@@ -2,28 +2,37 @@ package main
 
 import (
 	"bitbucket.org/Zensey/go-archetype-project/pkg/logger"
+	"net"
 	"net/http"
 	"time"
 )
 
-var	version string
+var version string
 
-func InitServer() {
-	l,_ := logger.NewLogger(logger.LogLevelInfo, "demo", logger.BackendConsole)
-	s := &http.Server{
+type app struct {
+	log      logger.Logger
+	srv      http.Server
+	listener net.Listener
+}
+
+func InitServer() app {
+	l, _ := logger.NewLogger(logger.LogLevelInfo, "serv", logger.BackendConsole)
+	s := http.Server{
 		Addr:    ":8080",
 		Handler: NewHandler(l),
 	}
 
-	go graceful(s.Shutdown, 10 * time.Second, l)
 	l.Infof("Listening on http://0.0.0.0%s", s.Addr)
-
-	err := s.ListenAndServe()
-	if err != http.ErrServerClosed {
+	listener, err := net.Listen("tcp", s.Addr)
+	if err != nil {
 		l.Error(err)
 	}
+
+	go s.Serve(listener)
+	return app{log: l, srv: s, listener: listener}
 }
 
 func main() {
-	InitServer()
+	app := InitServer()
+	graceful(app.srv.Shutdown, 10*time.Second, app.log)
 }

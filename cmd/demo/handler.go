@@ -10,7 +10,6 @@ import (
 	_ "image/gif"
 	_ "image/jpeg"
 	"image/png"
-	_ "image/png"
 	"io"
 	"net/http"
 	"runtime/debug"
@@ -18,6 +17,11 @@ import (
 )
 
 const thumbDim = 100
+
+type TRequest struct {
+	Urls []string `json:"imgsUrls,omitempty"`
+	Imgs []string `json:"imgs,omitempty"`
+}
 
 type TResponse struct {
 	thumbnails *[]image.Image
@@ -33,9 +37,9 @@ type decodeAndAddThumb func(rr io.Reader, l logger.Logger)
 func (r TResponse) decodeAndAddThumb(rr io.Reader, l logger.Logger) {
 	im, imgType, err := image.Decode(rr)
 	if err != nil {
-		l.Info("s> image.Decode", err)
+		l.Info("srv> image.Decode", err)
 	} else {
-		l.Info("s> i got", imgType)
+		l.Info("srv> i got", imgType)
 		*r.thumbnails = append(*r.thumbnails, resize.Resize(thumbDim, thumbDim, im, resize.NearestNeighbor))
 	}
 }
@@ -43,7 +47,7 @@ func (r TResponse) decodeAndAddThumb(rr io.Reader, l logger.Logger) {
 func (r TResponse) writeResp(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
 	for _, v := range *r.thumbnails {
-		//s.l.Info("s> t")
+		//srv.log.Info("srv> t")
 		var buff bytes.Buffer
 		png.Encode(&buff, v)
 		encoded := base64.StdEncoding.EncodeToString(buff.Bytes())
@@ -52,11 +56,6 @@ func (r TResponse) writeResp(w http.ResponseWriter) {
 	}
 	encoder := json.NewEncoder(w)
 	encoder.Encode(r)
-}
-
-type TRequest struct {
-	Urls []string `json:"imgsUrls,omitempty"`
-	Imgs []string `json:"imgs,omitempty"`
 }
 
 func ReadTRequest(r io.Reader) (TRequest, error) {
@@ -75,10 +74,10 @@ func (r *TRequest) handleImgs(s *HandlerCtx, handleImg decodeAndAddThumb) error 
 
 func (r *TRequest) handleUrls(s *HandlerCtx, handleImg decodeAndAddThumb) error {
 	for _, u := range r.Urls {
-		//s.l.Info("s> url", u)
+		//srv.log.Info("srv> url", u)
 		resp, err := http.Get(u)
 		if err != nil {
-			s.l.Info("s> get", err)
+			s.l.Info("srv> get", err)
 			continue
 		}
 		handleImg(resp.Body, s.l)
@@ -102,7 +101,7 @@ func (s *HandlerCtx) index(w http.ResponseWriter, r *http.Request) {
 	s.l.Info(r.RequestURI)
 	defer func() {
 		if r := recover(); r != nil {
-			s.l.Infof("%s: %s", r, debug.Stack())
+			s.l.Infof("%srv: %srv", r, debug.Stack())
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte("500"))
 		}
@@ -123,7 +122,7 @@ func (s *HandlerCtx) index(w http.ResponseWriter, r *http.Request) {
 					break
 				}
 				contentType := nr.Header["Content-Type"][0]
-				//s.l.Info("s> fileName", nr.FileName(), contentType, ok, nr.FormName())
+				//srv.log.Info("srv> fileName", nr.FileName(), contentType, ok, nr.FormName())
 				switch contentType {
 				case "application/octet-stream":
 					resp.decodeAndAddThumb(nr, s.l)

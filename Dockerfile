@@ -7,4 +7,5 @@ WORKDIR $GOPATH
 ADD . /app/
 WORKDIR /app
 RUN make demo
+RUN make test
 CMD ["/app/build/_workspace/bin/demo"]

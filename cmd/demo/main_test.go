@@ -1,30 +1,33 @@
 package main
 
 import (
-	"testing"
-	"fmt"
+	"bufio"
 	"bytes"
-	"io/ioutil"
-	"os"
-	"image"
-	"mime/multipart"
-	"io"
-	"net/http"
+	"dev.rubetek.com/go-archetype-project/pkg/logger"
 	"encoding/base64"
 	"encoding/json"
-	"path"
+	"image"
+	"io"
+	"io/ioutil"
+	"mime/multipart"
+	"net/http"
 	"net/textproto"
+	"os"
+	"path"
 	"runtime/debug"
-	"bufio"
+	"testing"
 )
 
+var l logger.Logger
+
 func init() {
-	go InitServer()
+	InitServer()
+	l, _ = logger.NewLogger(logger.LogLevelInfo, "_test_", logger.BackendConsole)
 }
 
 const serviceUrl = "http://localhost:8080/upload"
 
-var imgsUrls = []string {
+var imgsUrls = []string{
 	"https://www.google.ru/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png",
 	"https://www.google.ru/images/branding/googlelogo/2x/googlelogo_color_120x44dp.png",
 }
@@ -39,31 +42,28 @@ func findImagesInDir(handler func(fileName string, imageFile *os.File)) (countIm
 	for _, f := range files {
 		imageFile, err := os.Open(testDir + f.Name())
 		if err != nil {
-			fmt.Println(err)
 			continue
 		}
 		_, _, err = image.Decode(imageFile)
 		if err != nil {
-			//fmt.Println(err)
 			continue
 		} else {
 			countImgs++
-			imageFile.Seek(0,0)
-			handler(testDir + f.Name(), imageFile)
+			imageFile.Seek(0, 0)
+			handler(testDir+f.Name(), imageFile)
 		}
 		imageFile.Close()
 	}
 	return
 }
 
-func handleResp(req *http.Request, countImgs int, t *testing.T) (err error){
+func handleResp(req *http.Request, countImgs int, t *testing.T) (err error) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
 		panic(err)
 	}
-	//fmt.Println("response Status:", resp.Status)
-	//fmt.Println("response Headers:", resp.Header)
+	//l.Info("response Status:", resp.Status)
 
 	obj := TResponse{}
 	err = json.NewDecoder(resp.Body).Decode(&obj)
@@ -71,19 +71,21 @@ func handleResp(req *http.Request, countImgs int, t *testing.T) (err error){
 		panic(err)
 	}
 
-	for _,v := range obj.Thumbs {
+	for _, v := range obj.Thumbs {
 		b, err := base64.StdEncoding.DecodeString(v)
 		if err != nil {
+			l.Info(err)
 			continue
 		}
 		im, imageType, err := image.Decode(bytes.NewReader(b))
 		if err != nil {
+			l.Info(err)
 			continue
 		}
-		fmt.Println("test> got", imageType, im.Bounds())
+		l.Info("got", imageType, im.Bounds())
 		countImgs--
 	}
-	fmt.Println("test> N_Sent - N_Got =", countImgs)
+	l.Info("test> N_Sent - N_Got =", countImgs)
 	if countImgs != 0 {
 		t.Fail()
 	}
@@ -92,7 +94,7 @@ func handleResp(req *http.Request, countImgs int, t *testing.T) (err error){
 
 func handlePanic(t *testing.T) {
 	if r := recover(); r != nil {
-		fmt.Printf("%s: %s", r, debug.Stack()) // line 20
+		l.Infof("%srv: %srv", r, debug.Stack()) // line 20
 		t.Fail()
 	}
 }
@@ -103,7 +105,7 @@ func Test_Multipart(t *testing.T) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
-	handler := func (fileName string, imageFile *os.File) {
+	handler := func(fileName string, imageFile *os.File) {
 		part, err := writer.CreateFormFile("file", path.Base(fileName))
 		if err != nil {
 			panic(err)
@@ -121,7 +123,7 @@ func Test_Multipart(t *testing.T) {
 	hdr := make(textproto.MIMEHeader)
 	hdr.Set("Content-Type", "text/json")
 	hdr.Set("Content-Disposition", "form-data; name=\"imgsUrls\"")
-	fileWriter,_ := writer.CreatePart(hdr)
+	fileWriter, _ := writer.CreatePart(hdr)
 	json.NewEncoder(fileWriter).Encode(jsonData)
 	err := writer.Close()
 	if err != nil {
@@ -145,12 +147,13 @@ func Test_Json(t *testing.T) {
 	defer handlePanic(t)
 
 	jsonData := TRequest{}
-	handler := func (fileName string, imageFile *os.File) {
+	handler := func(fileName string, imageFile *os.File) {
 		imgBytes := readFile(imageFile)
 		str := base64.StdEncoding.EncodeToString(imgBytes)
 		jsonData.Imgs = append(jsonData.Imgs, str)
 	}
 	countImgs := findImagesInDir(handler)
+
 	jsonData.Urls = imgsUrls
 	countImgs += len(imgsUrls)
 	b, _ := json.Marshal(jsonData)

@@ -15,3 +15,18 @@ The following will be appreciated:
 - Graceful shutdown of application.
 - `Dockerfile` and `docker-compose.yml` which allow to boot up application in a single `docker-compose up` command. 
 - Unit tests, functional tests, CI integration (Travis CI, Circle CI, etc).
+
+
+# API.
+Request `POST /upload`
+Images data can be uploaded
+ * as part of multipart with `Content-Type: application/octet-strea`
+ * as part of json `{"imgs": [ ], "urls": [ ]}`
+   * there can be both urls and base64-encoded images in json payload
+   * json can be posted either directly in body or as part of multipart with `Content-Type: text/json`
+
+Response:
+ base64-encoded thumbnails in json payload `{[ ]}`
+
+# How to run
+To run tests and service do `make docker-build`

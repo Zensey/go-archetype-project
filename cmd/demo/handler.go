@@ -129,6 +129,7 @@ func (s *HandlerCtx) index(w http.ResponseWriter, r *http.Request) {
 
 				case "text/json":
 					req, _ := ReadTRequest(nr)
+					req.handleImgs(s, resp.decodeAndAddThumb)
 					req.handleUrls(s, resp.decodeAndAddThumb)
 				}
 				nr.Close()

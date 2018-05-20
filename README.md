@@ -20,7 +20,7 @@ The following will be appreciated:
 # API.
 Request `POST /upload`
 Images data can be uploaded
- * as part of multipart with `Content-Type: application/octet-strea`
+ * as part of multipart with `Content-Type: application/octet-stream`
  * as part of json `{"imgs": [ ], "urls": [ ]}`
    * there can be both urls and base64-encoded images in json payload
    * json can be posted either directly in body or as part of multipart with `Content-Type: text/json`

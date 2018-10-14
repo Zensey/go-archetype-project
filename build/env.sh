@@ -11,12 +11,12 @@ fi
 workspace="$PWD/build/_workspace"
 root="$PWD"
 root_name="go-archetype-project"
-sdir="$workspace/src/dev.rubetek.com"
+sdir="$workspace/src/github.com/Zensey"
 
 if [ ! -L "$sdir/$root_name" ]; then
     mkdir -p "$sdir"
     cd "$sdir"
-    ln -s ../../../../. "$root_name"
+    ln -s ../../../../../. "$root_name"
     cd "$root"
 fi
 

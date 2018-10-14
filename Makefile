@@ -7,8 +7,8 @@ GOBIN=$(shell pwd)/build/_workspace/bin
 PWD=$(shell pwd)
 
 BINARY = demo
-PKG1 = "dev.rubetek.com/go-archetype-project/cmd/demo"
-PKG2 = "dev.rubetek.com/go-archetype-project/pkg/logger"
+PKG1 = "github.com/Zensey/go-archetype-project/cmd/demo"
+PKG2 = "github.com/Zensey/go-archetype-project/pkg/logger"
 PKGS = $(PKG1) $(PKG2)
 report = lint_report.txt
 
@@ -41,7 +41,7 @@ lint:
 	$(ENV) interfacer $(PKGS)  &>> $(report)
 
 $(BINARY):
-	$(ENV) $(GO) generate "dev.rubetek.com/go-archetype-project/pkg/logger"
+	$(ENV) $(GO) generate "github.com/Zensey/go-archetype-project/pkg/logger"
 	$(ENV) $(GO) install -v $(LDFLAGS) ./cmd/$(BINARY)
 
 clean:

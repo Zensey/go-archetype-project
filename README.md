@@ -1,14 +1,9 @@
-# Task
+### How to run
 
+| Plugin | README |
+| ------ | ------ |
+| make docker-build |  runs all tests and then run service in docker. need only a docker installed to run this goal |
+| make demo         | builds program |
+| make test         | runs all tests |
 
-Using only the standard library, create a Go HTTP server that on each request responds
-with a counter of the total number of requests that it has received during the previous 60 seconds (moving window).
-
-The server should continue to the return the correct numbers after restarting it, by persisting data to a file.
-
-
-Makefile rules
-* make get-deps
-* make demo
-* make lint
-* make docker-build
+In cases 2,3 you need a golang installed and sources placed in a proper place ($GOPATH/src/bitbucket.org/Zensey)

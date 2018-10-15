@@ -25,8 +25,9 @@ func NewHandler(log logger.Logger) *Handler {
 	return s
 }
 
-// This func discards all timestamps older then now - ttl (]
-func (s *Handler) discardOlder(now int64, ttl int64) {
+// This func discards all timestamps older then now - ttl
+// unit of both arguments is nanosecond
+func (s *Handler) discardOld(now int64, ttl int64) {
 	if len(s.requests) == 0 {
 		return
 	}
@@ -42,16 +43,19 @@ func (s *Handler) discardOlder(now int64, ttl int64) {
 	}
 }
 
+func nowNano() int64 {
+	return time.Now().UnixNano()
+}
+
 func (s *Handler) index(w http.ResponseWriter, r *http.Request) {
 	if r.RequestURI != "/" {
 		return
 	}
-
 	nReq := 0
 
 	s.Lock()
-	now := time.Now().Unix()
-	s.discardOlder(now, ttlWindowSec)
+	now := nowNano()
+	s.discardOld(now, ttlNanoSec)
 	nReq = len(s.requests)
 	s.requests = append(s.requests, now)
 	s.Unlock()
@@ -64,28 +68,32 @@ func (s *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.mux.ServeHTTP(w, r)
 }
 
-func (s *Handler) OnShutdown() error {
+func (s *Handler) SaveState() error {
 	s.Info("Shutdown..")
-	f, err := os.Create("/tmp/codingTask.dat")
+
+	f, err := os.Create(dataFile)
 	if err != nil {
 		return err
 	}
-	s.discardOlder(time.Now().Unix(), ttlWindowSec)
+	s.discardOld(nowNano(), ttlNanoSec)
 	s.Info("Saving recs:", len(s.requests))
 	return gob.NewEncoder(f).Encode(s.requests)
 }
 
-func (s *Handler) BeforeStart() error {
-	s.Info("Handler > Before start")
-	f, err := os.Open("/tmp/codingTask.dat")
+func (s *Handler) LoadState() error {
+	s.Info("Handler > Load state")
+
+	f, err := os.Open(dataFile)
 	if err != nil {
 		return err
 	}
+	defer f.Close()
+
 	err = gob.NewDecoder(f).Decode(&s.requests)
 	if err != nil {
 		return err
 	}
 	s.Info("Restored recs:", len(s.requests))
-	s.discardOlder(time.Now().Unix(), ttlWindowSec)
-	return f.Close()
+	s.discardOld(nowNano(), ttlNanoSec)
+	return nil
 }

@@ -8,66 +8,79 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/Zensey/slog"
+	"bitbucket.org/Zensey/go-archetype-project/pkg/logger"
 )
 
 var version string
 
 const (
-	addr         = ":8080"
-	ttlWindowSec = 60
+	address    = ":8080"
+	ttlNanoSec = 60 * 1e9
+	dataFile   = "/tmp/codingTask.dat"
 )
 
 type app struct {
 	logger.Logger
 	srv http.Server
-	h   *Handler
+	hnd *Handler
 }
 
-func initServer() (*app, error) {
-	l := slog.ConsoleLogger()
-	l.SetLevel(slog.LevelTrace)
+func newApp() (*app, error) {
+	l, _ := logger.NewLogger(logger.LogLevelInfo, "server", logger.BackendConsole)
+	hnd := NewHandler(l)
+	return &app{Logger: l, hnd: hnd}, nil
+}
+
+func (a *app) start() error {
+	a.hnd.LoadState()
 
 	// Ensure socket is open
-	listener, err := net.Listen("tcp", addr)
+	listener, err := net.Listen("tcp", address)
 	if err != nil {
-		l.Error(err)
+		return err
 	}
-	l.Infof("Listening on http://0.0.0.0%s", addr)
-	hnd := NewHandler(l)
-	s := http.Server{
-		Addr:    addr,
-		Handler: hnd,
+	a.Infof("Listening on http://0.0.0.0%s", address)
+
+	a.srv = http.Server{
+		Addr:    address,
+		Handler: a.hnd,
 	}
-	err = hnd.BeforeStart()
-	if err != nil {
-		return nil, err
-	}
-	go s.Serve(listener)
-	return &app{Logger: l, srv: s, h: hnd}, nil
+	go a.srv.Serve(listener)
+	return nil
 }
 
-func (a *app) waitShutdown() error {
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
-	<-stop
-	return a.srv.Shutdown(context.Background())
+func (a *app) stop() error {
+	err := a.srv.Shutdown(context.Background())
+	if err != nil {
+		return err
+	}
+	return a.saveState()
+}
+
+func (a *app) saveState() error {
+	return a.hnd.SaveState()
 }
 
 func main() {
-	app, err := initServer()
+	app, err := newApp()
 	if err != nil {
 		app.Errorf("Error: %v", err)
 		return
 	}
 	app.Info("Serving..")
-	err = app.waitShutdown()
+	err = app.start()
 	if err != nil {
 		app.Errorf("Error: %v", err)
 		return
 	}
-	err = app.h.OnShutdown()
+
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+	<-stop
+
+	err = app.stop()
 	if err != nil {
 		app.Errorf("Error: %v", err)
+		return
 	}
 }

@@ -7,8 +7,8 @@ GOBIN=$(shell pwd)/build/_workspace/bin
 PWD=$(shell pwd)
 
 BINARY = demo
-PKG1 = "github.com/Zensey/go-archetype-project/cmd/demo"
-PKG2 = "github.com/Zensey/go-archetype-project/pkg/logger"
+PKG1 = "bitbucket.org/Zensey/go-archetype-project/cmd/demo"
+PKG2 = "bitbucket.org/Zensey/go-archetype-project/pkg/logger"
 PKGS = $(PKG1) $(PKG2)
 report = lint_report.txt
 
@@ -17,13 +17,12 @@ all: get-deps $(BINARY)
 
 get-deps:
 	$(ENV) $(GO) get -u github.com/golang/dep/cmd/dep
-	$(ENV) $(GO) get -u -a golang.org/x/tools/cmd/stringer
-
-	$(ENV) $(GO) get -u github.com/golang/lint/golint
-	$(ENV) $(GO) get -u github.com/kisielk/errcheck
-	$(ENV) $(GO) get -u honnef.co/go/tools/cmd/staticcheck
-	$(ENV) $(GO) get -u honnef.co/go/tools/cmd/unused
-	$(ENV) $(GO) get -u mvdan.cc/interfacer
+	#$(ENV) $(GO) get -u -a golang.org/x/tools/cmd/stringer
+	#$(ENV) $(GO) get -u github.com/golang/lint/golint
+	#$(ENV) $(GO) get -u github.com/kisielk/errcheck
+	#$(ENV) $(GO) get -u honnef.co/go/tools/cmd/staticcheck
+	#$(ENV) $(GO) get -u honnef.co/go/tools/cmd/unused
+	#$(ENV) $(GO) get -u mvdan.cc/interfacer
 
 	$(ENV) $(GOBIN)/dep ensure -v
 
@@ -41,7 +40,7 @@ lint:
 	$(ENV) interfacer $(PKGS)  &>> $(report)
 
 $(BINARY):
-	$(ENV) $(GO) generate "github.com/Zensey/go-archetype-project/pkg/logger"
+	$(ENV) $(GO) generate "bitbucket.org/Zensey/go-archetype-project/pkg/logger"
 	$(ENV) $(GO) install -v $(LDFLAGS) ./cmd/$(BINARY)
 
 clean:

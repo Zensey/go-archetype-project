@@ -5,6 +5,7 @@ RUN apk add --no-cache \
 
 ADD . /app/
 WORKDIR /app
+RUN make get-deps
 RUN make test
 RUN make demo
 CMD ["/app/demo"]

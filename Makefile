@@ -23,7 +23,7 @@ get-deps:
 	$(ENV) $(GO) get -u mvdan.cc/interfacer
 
 test:
-	$(ENV) $(GO) test $(PKG1) -v -run Main
+	$(ENV) $(GO) test $(PKG1) -v
 
 lint:
 	$(ENV) golint $(PKGS) &>> $(report)

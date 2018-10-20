@@ -23,7 +23,7 @@ get-deps:
 	#$(ENV) $(GO) get -u honnef.co/go/tools/cmd/staticcheck
 	#$(ENV) $(GO) get -u honnef.co/go/tools/cmd/unused
 	#$(ENV) $(GO) get -u mvdan.cc/interfacer
-
+	#$(ENV) $(GOBIN)/dep init
 	$(ENV) $(GOBIN)/dep ensure -v
 
 test:

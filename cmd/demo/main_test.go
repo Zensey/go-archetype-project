@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"bytes"
-	"dev.rubetek.com/go-archetype-project/pkg/logger"
 	"encoding/base64"
 	"encoding/json"
 	"image"
@@ -16,12 +15,25 @@ import (
 	"path"
 	"runtime/debug"
 	"testing"
+
+	"bitbucket.org/Zensey/go-archetype-project/pkg/logger"
 )
 
 var l logger.Logger
 
 func init() {
-	InitServer()
+	app, err := newApp()
+	if err != nil {
+		app.Errorf("Error: %v", err)
+		return
+	}
+	app.Info("Serving..")
+	err = app.start()
+	if err != nil {
+		app.Errorf("Error: %v", err)
+		return
+	}
+
 	l, _ = logger.NewLogger(logger.LogLevelInfo, "_test_", logger.BackendConsole)
 }
 

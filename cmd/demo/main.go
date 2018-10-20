@@ -1,8 +1,12 @@
 package main
 
 import (
+	"context"
 	"net"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"bitbucket.org/Zensey/go-archetype-project/pkg/logger"
@@ -10,30 +14,70 @@ import (
 
 var version string
 
+const (
+	address = ":8080"
+	timeout = 10 * time.Second
+)
+
 type app struct {
-	log      logger.Logger
-	srv      http.Server
-	listener net.Listener
+	logger.Logger
+	srv http.Server
+	hnd *Handler
 }
 
-func InitServer() app {
-	l, _ := logger.NewLogger(logger.LogLevelInfo, "serv", logger.BackendConsole)
-	s := http.Server{
-		Addr:    ":8080",
-		Handler: NewHandler(l),
-	}
+func newApp() (*app, error) {
+	l, _ := logger.NewLogger(logger.LogLevelInfo, "server", logger.BackendConsole)
+	hnd := NewHandler(l)
+	return &app{Logger: l, hnd: hnd}, nil
+}
 
-	l.Infof("Listening on http://0.0.0.0%s", s.Addr)
-	listener, err := net.Listen("tcp", s.Addr)
+func (a *app) start() error {
+	// Ensure socket is open
+	listener, err := net.Listen("tcp", address)
 	if err != nil {
-		l.Error(err)
+		return err
 	}
+	a.Infof("Listening on http://0.0.0.0%s", address)
 
-	go s.Serve(listener)
-	return app{log: l, srv: s, listener: listener}
+	a.srv = http.Server{
+		Addr:    address,
+		Handler: a.hnd,
+	}
+	go a.srv.Serve(listener)
+	return nil
+}
+
+func (a *app) stop() error {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	err := a.srv.Shutdown(ctx)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func main() {
-	app := InitServer()
-	graceful(app.srv.Shutdown, 10*time.Second, app.log)
+	app, err := newApp()
+	if err != nil {
+		app.Errorf("Error: %v", err)
+		return
+	}
+	app.Info("Serving..")
+	err = app.start()
+	if err != nil {
+		app.Errorf("Error: %v", err)
+		return
+	}
+
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+	<-stop
+
+	err = app.stop()
+	if err != nil {
+		app.Errorf("Error: %v", err)
+		return
+	}
 }

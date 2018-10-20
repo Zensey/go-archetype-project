@@ -2,10 +2,8 @@ package main
 
 import (
 	"bytes"
-	"dev.rubetek.com/go-archetype-project/pkg/logger"
 	"encoding/base64"
 	"encoding/json"
-	"github.com/nfnt/resize"
 	"image"
 	_ "image/gif"
 	_ "image/jpeg"
@@ -14,25 +12,13 @@ import (
 	"net/http"
 	"runtime/debug"
 	"strings"
+	"sync"
+
+	"bitbucket.org/Zensey/go-archetype-project/pkg/logger"
+	"github.com/nfnt/resize"
 )
 
 const thumbDim = 100
-
-type TRequest struct {
-	Urls []string `json:"imgsUrls,omitempty"`
-	Imgs []string `json:"imgs,omitempty"`
-}
-
-type TResponse struct {
-	thumbnails *[]image.Image
-	Thumbs     []string `json:"thumbs,omitempty"`
-}
-
-func NewTResponse() TResponse {
-	return TResponse{thumbnails: &[]image.Image{}}
-}
-
-type decodeAndAddThumb func(rr io.Reader, l logger.Logger)
 
 func (r TResponse) decodeAndAddThumb(rr io.Reader, l logger.Logger) {
 	im, imgType, err := image.Decode(rr)
@@ -64,44 +50,46 @@ func ReadTRequest(r io.Reader) (TRequest, error) {
 	return obj, err
 }
 
-func (r *TRequest) handleImgs(s *HandlerCtx, handleImg decodeAndAddThumb) error {
+func (r *TRequest) handleImgs(s *Handler, handleImg decodeAndAddThumb) error {
 	for _, v := range r.Imgs {
 		input := base64.NewDecoder(base64.StdEncoding, strings.NewReader(v))
-		handleImg(input, s.l)
+		handleImg(input, s.Logger)
 	}
 	return nil
 }
 
-func (r *TRequest) handleUrls(s *HandlerCtx, handleImg decodeAndAddThumb) error {
+func (r *TRequest) handleUrls(s *Handler, handleImg decodeAndAddThumb) error {
 	for _, u := range r.Urls {
 		//srv.log.Info("srv> url", u)
 		resp, err := http.Get(u)
 		if err != nil {
-			s.l.Info("srv> get", err)
+			s.Info("srv> get", err)
 			continue
 		}
-		handleImg(resp.Body, s.l)
+		handleImg(resp.Body, s.Logger)
 	}
 	return nil
 }
 
-type HandlerCtx struct {
-	mux *http.ServeMux
-	l   logger.Logger
+type Handler struct {
+	logger.Logger
+	mux      *http.ServeMux
+	requests []int64
+	sync.Mutex
 }
 
-func NewHandler(log logger.Logger) *HandlerCtx {
-	s := &HandlerCtx{mux: http.NewServeMux()}
-	s.l = log
+func NewHandler(log logger.Logger) *Handler {
+	s := &Handler{mux: http.NewServeMux()}
+	s.Logger = log
 	s.mux.HandleFunc("/upload", s.index)
 	return s
 }
 
-func (s *HandlerCtx) index(w http.ResponseWriter, r *http.Request) {
-	s.l.Info(r.RequestURI)
+func (s *Handler) index(w http.ResponseWriter, r *http.Request) {
+	s.Info(r.RequestURI)
 	defer func() {
 		if r := recover(); r != nil {
-			s.l.Infof("%srv: %srv", r, debug.Stack())
+			s.Infof("%srv: %srv", r, debug.Stack())
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte("500"))
 		}
@@ -125,7 +113,7 @@ func (s *HandlerCtx) index(w http.ResponseWriter, r *http.Request) {
 				//srv.log.Info("srv> fileName", nr.FileName(), contentType, ok, nr.FormName())
 				switch contentType {
 				case "application/octet-stream":
-					resp.decodeAndAddThumb(nr, s.l)
+					resp.decodeAndAddThumb(nr, s.Logger)
 
 				case "text/json":
 					req, _ := ReadTRequest(nr)
@@ -147,6 +135,6 @@ func (s *HandlerCtx) index(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *HandlerCtx) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (s *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.mux.ServeHTTP(w, r)
 }

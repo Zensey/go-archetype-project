@@ -14,6 +14,8 @@ func init() {
 }
 
 func main() {
-	l.Infof("Hello, World ! Version: %s", version)
+	//l.Infof("Hello, World ! Version: %s", version)
+	play()
+
 	return
 }

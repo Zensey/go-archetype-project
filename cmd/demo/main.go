@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bitbucket.org/Zensey/go-archetype-project/pkg/logger"
+	"github.com/Zensey/go-archetype-project/pkg/logger"
 )
 
 var (

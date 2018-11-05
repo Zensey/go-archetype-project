@@ -4,7 +4,7 @@ import (
 	"errors"
 	"math/rand"
 
-	. "bitbucket.org/Zensey/go-archetype-project/cmd/demo/types"
+	. "github.com/Zensey/go-archetype-project/cmd/demo/types"
 )
 
 const (

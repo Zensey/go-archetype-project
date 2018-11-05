@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"testing"
 
-	"bitbucket.org/Zensey/go-archetype-project/pkg/logger"
+	"github.com/Zensey/go-archetype-project/pkg/logger"
 	"github.com/stretchr/testify/assert"
 )
 

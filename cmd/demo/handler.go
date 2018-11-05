@@ -5,8 +5,8 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"bitbucket.org/Zensey/go-archetype-project/cmd/demo/atkins"
-	"bitbucket.org/Zensey/go-archetype-project/pkg/logger"
+	"github.com/Zensey/go-archetype-project/cmd/demo/atkins"
+	"github.com/Zensey/go-archetype-project/pkg/logger"
 	"github.com/gbrlsnchs/jwt"
 )
 

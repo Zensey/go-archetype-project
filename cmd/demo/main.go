@@ -14,8 +14,17 @@ func init() {
 }
 
 func main() {
+	// init rand seed
+
 	//l.Infof("Hello, World ! Version: %s", version)
-	play()
+
+	//m := newTState(1000, 10000)
+	//m.stops = TStops{27, 14, 3, 31, 27}
+	//m.play()
+
+	//m := newTState(1000, 10000)
+	//m.stops = TStops{26, 11, 21, 5, 2}
+	//m.play()
 
 	return
 }

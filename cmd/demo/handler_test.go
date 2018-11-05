@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"math/rand"
 	"net/http"
 	"testing"
@@ -28,32 +29,44 @@ func Test_Server(t *testing.T) {
 	tok := newToken("asfasf", 1000, 10000)
 	tok.SetAlgorithm(hs256)
 
-	makeReq := func() (*TokenDto, *ResponseDto) {
+	makeReq := func() (respTok *TokenDto, respDto *ResponseDto, err error) {
 		tokenBytes, err := tok.pack()
-		assert.Nil(t, err)
+		if err != nil {
+			return
+		}
 
 		rr := bytes.NewReader(tokenBytes)
 		resp, err := client.Post(url, contentType, rr)
-		assert.Nil(t, err)
+		if err != nil {
+			return
+		}
+		if resp.StatusCode != 200 {
+			err = errors.New(resp.Status)
+			return
+		}
+		assert.Equal(t, 200, resp.StatusCode)
 
-		respDto := &ResponseDto{}
-		err = json.NewDecoder(resp.Body).Decode(&respDto)
-		assert.Nil(t, err)
+		respDto = &ResponseDto{}
+		err = json.NewDecoder(resp.Body).Decode(respDto)
+		if err != nil {
+			return
+		}
 
-		respTok := newToken("", 0, 0)
+		respTok = newToken("", 0, 0) // empty token
 		err = respTok.unpack([]byte(respDto.JWT))
-		assert.Nil(t, err)
-		return respTok, respDto
+		return
 	}
 
 	for i := 1; i <= 5; i++ {
-		respTok, dto := makeReq()
-		//lg.Infof("#req %d  respTok %v ", i, dto)
+		respTok, dto, err := makeReq()
+		assert.Nil(t, err)
+		if err != nil {
+			break
+		}
 
 		assert.Equal(t, tok.Uid, respTok.Uid)
 		assert.Equal(t, tok.Bet, respTok.Bet)
 		assert.Equal(t, respTok.Chips, tok.Chips-tok.Bet+dto.Total)
-
 		tok = respTok
 		lg.Infof("#req %d chips: %v total: %d", i, tok.Chips, dto.Total)
 	}

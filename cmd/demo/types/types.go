@@ -1,4 +1,4 @@
-package main
+package types
 
 import (
 	"encoding/json"
@@ -9,14 +9,20 @@ type TStops []int
 type Symbol int
 type SpinType int
 
+type TBaseSpin struct {
+	SpinType SpinType
+	Stops    TStops
+	Total    int
+}
+
 const (
-	mainSpin = SpinType(iota)
-	freeSpin
+	MainSpin = SpinType(iota)
+	FreeSpin
 )
 
 func (u SpinType) MarshalJSON() ([]byte, error) {
 	stype := "main"
-	if u != mainSpin {
+	if u != MainSpin {
 		stype = "free"
 	}
 	return json.Marshal(stype)
@@ -30,9 +36,9 @@ func (u *SpinType) UnmarshalJSON(data []byte) error {
 	}
 	switch v {
 	case "main":
-		*u = mainSpin
+		*u = MainSpin
 	case "free":
-		*u = freeSpin
+		*u = FreeSpin
 	default:
 		return errors.New("unknown spin type " + v)
 	}

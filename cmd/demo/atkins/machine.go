@@ -1,8 +1,10 @@
-package main
+package atkins
 
 import (
 	"errors"
 	"math/rand"
+
+	. "bitbucket.org/Zensey/go-archetype-project/cmd/demo/types"
 )
 
 const (
@@ -45,11 +47,9 @@ type (
 	TSymRow  [nReels]Symbol
 
 	TSpin struct {
-		stops    TStops
+		TBaseSpin
 		seq      TSymRow
 		scatters int
-		spType   SpinType
-		total    int
 	}
 
 	TState struct {
@@ -61,7 +61,7 @@ type (
 		uid   string
 		bet   int
 		chips int
-		win   int // total win
+		win   int // Total win
 
 		isInitialized bool // for debug purposes
 	}
@@ -131,6 +131,39 @@ func getReelSymSeq(r int, mid int) (ret [3]Symbol) {
 	return
 }
 
+/////////////////////////////////////////////////////////////
+
+func NewAtkins(uid string, bet, chips int) *TState {
+	return &TState{
+		uid:   uid,
+		bet:   bet,
+		chips: chips,
+	}
+}
+
+func (s TState) GetSpins() (res []TBaseSpin) {
+	for _, v := range s.spins {
+		res = append(res, v.TBaseSpin)
+	}
+	return
+}
+
+func (s TState) GetUid() string {
+	return s.uid
+}
+
+func (s TState) GetBet() int {
+	return s.bet
+}
+
+func (s TState) GetChips() int {
+	return s.chips
+}
+
+func (s TState) GetWin() int {
+	return s.win
+}
+
 func (s *TState) calcLineWin() int {
 	calcSum := func(firstSym Symbol) int {
 		repeats := 1
@@ -160,22 +193,21 @@ func (s *TState) calcLineWin() int {
 			}
 		}
 	}
-	//fmt.Println("calcLineWin > sum", sum)
 	return sum
 }
 
 func (s *TState) calcSingleSpinWining(spinType SpinType) int {
-	if spinType == mainSpin {
+	if spinType == MainSpin {
 		s.chips = s.chips - s.bet
 	}
 	coins := int(s.bet / nLines)
 	scatters := 0
 
-	var Field [5][3]Symbol
+	var T [nReels][nRows]Symbol // visible grid
 
 	for col := 0; col < nReels; col++ {
-		seq := getReelSymSeq(col, s.stops[col])
-		Field[col] = seq
+		seq := getReelSymSeq(col, s.Stops[col])
+		T[col] = seq
 
 		for r := 0; r < nRows; r++ {
 			if seq[r] == Scatter {
@@ -193,76 +225,43 @@ func (s *TState) calcSingleSpinWining(spinType SpinType) int {
 		payLine := WinLines[l]
 		for col := 0; col < nReels; col++ {
 			row := payLine[col] - 1
-			s.seq[col] = Field[col][row]
+			s.seq[col] = T[col][row]
 		}
 		sum += s.calcLineWin()
-		//fmt.Println("c> ", s.seq, s.calcLineWin())
 	}
 	sum += getPay(Scatter, scatters) // scatter pay
 
-	if spinType == freeSpin {
+	if spinType == FreeSpin {
 		sum = sum * 3 // in free games all wins are tripled
 	}
-	s.total = sum * coins
-	//fmt.Println("c sc >", s.total, sum, getPay(Scatter, scatters), scatters, spinType == freeSpin, coins)
+	s.Total = sum * coins
 
-	s.win += s.total
-	s.chips += s.total
-	s.spType = spinType
+	s.win += s.Total
+	s.chips += s.Total
+	s.SpinType = spinType
 	s.spins = append(s.spins, s.TSpin)
 
-	return s.total
+	return s.Total
 }
 
 func (s *TState) stopRandom() {
-	s.stops = make(TStops, nReels)
+	s.Stops = make(TStops, nReels)
 	for r := 0; r < nReels; r++ {
-		s.stops[r] = rand.Intn(32)
-	}
-	//fmt.Println("stopRandom > ", s.stops)
-}
-
-func newTState(uid string, bet, chips int) *TState {
-	return &TState{
-		uid:   uid,
-		bet:   bet,
-		chips: chips,
+		s.Stops[r] = rand.Intn(32)
 	}
 }
-func (s TState) getSpins() []TSpin {
-	return s.spins
-}
-func (s TState) getUid() string {
-	return s.uid
-}
-func (s TState) getBet() int {
-	return s.bet
-}
-func (s TState) getChips() int {
-	return s.chips
-}
-func (s TState) getWin() int {
-	return s.win
-}
 
-func (s *TState) isSufficientChips() bool {
-	return s.chips >= s.bet
-}
-
-func (s *TState) play() error {
-	//fmt.Println("play> ", !isInitialized, s.chips)
-	if !s.isSufficientChips() {
+func (s *TState) Play() error {
+	if s.chips < s.bet {
 		return errors.New("insufficient chips")
 	}
-
 	if !s.isInitialized {
-		//fmt.Println("st >")
 		s.stopRandom()
 	}
-	s.calcSingleSpinWining(mainSpin)
+	s.calcSingleSpinWining(MainSpin)
 	for s.freeRuns > 0 {
 		s.stopRandom()
-		s.calcSingleSpinWining(freeSpin)
+		s.calcSingleSpinWining(FreeSpin)
 		s.freeRuns--
 	}
 	return nil

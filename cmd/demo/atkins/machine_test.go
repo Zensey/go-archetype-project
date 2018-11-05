@@ -1,14 +1,15 @@
-package main
+package atkins
 
 import (
 	"math/rand"
 	"testing"
 
+	"bitbucket.org/Zensey/go-archetype-project/cmd/demo/types"
 	"github.com/stretchr/testify/assert"
 )
 
 func Test_Machine_CalcLineWin(t *testing.T) {
-	s := newTState("uid", 20, 10000)
+	s := NewAtkins("uid", 20, 10000)
 
 	s.seq = TSymRow{0, 0, 1, 2, 2}
 	assert.Equal(t, 40, s.calcLineWin())
@@ -33,11 +34,11 @@ func Test_Machine_CalcLineWin(t *testing.T) {
 
 func Test_Machine_SingleSpinWithoutScatters(t *testing.T) {
 	rand.Seed(0)
-	s := newTState("uid", 20, 0)
+	s := NewAtkins("uid", 20, 0)
 
 	/* case w/o scatters */
-	s.stops = TStops{27, 14, 3, 31, 27}
-	win := s.calcSingleSpinWining(mainSpin)
+	s.Stops = types.TStops{27, 14, 3, 31, 27}
+	win := s.calcSingleSpinWining(types.MainSpin)
 	assert.Equal(t, 15, win)
 }
 
@@ -45,10 +46,10 @@ func Test_Machine_PlayWithScatters(t *testing.T) {
 	rand.Seed(0)
 
 	/* case with scatters and free plays */
-	s := newTState("uid", 1000, 10000)
-	s.stops = TStops{26, 11, 21, 5, 2}
+	s := NewAtkins("uid", 1000, 10000)
+	s.Stops = types.TStops{26, 11, 21, 5, 2}
 	s.isInitialized = true
-	err := s.play()
+	err := s.Play()
 	assert.Nil(t, err)
 	assert.Equal(t, 16150, s.chips)
 }

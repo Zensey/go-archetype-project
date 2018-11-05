@@ -8,8 +8,9 @@ PWD=$(shell pwd)
 
 BINARY = demo
 PKG1 = "github.com/Zensey/go-archetype-project/cmd/demo"
-PKG2 = "github.com/Zensey/go-archetype-project/pkg/logger"
-PKGS = $(PKG1) $(PKG2)
+PKG2 = "github.com/Zensey/go-archetype-project/cmd/demo/atkins"
+PKG3 = "github.com/Zensey/go-archetype-project/pkg/logger"
+PKGS = $(PKG1) $(PKG2) $(PKG3)
 report = lint_report.txt
 
 .DEFAULT_GOAL: $(BINARY)
@@ -27,7 +28,7 @@ get-deps:
 	$(ENV) $(GOBIN)/dep ensure -v
 
 test:
-	$(ENV) $(GO) test $(PKG1) -v
+	$(ENV) $(GO) test $(PKG1) $(PKG2) -v
 
 lint:
 	$(ENV) golint $(PKGS)  &>> $(report)

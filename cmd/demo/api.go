@@ -1,6 +1,7 @@
 package main
 
 import (
+	. "bitbucket.org/Zensey/go-archetype-project/cmd/demo/types"
 	"github.com/gbrlsnchs/jwt"
 )
 
@@ -8,6 +9,7 @@ const spinsApiUri = "/api/machines/atkins-diet/spins"
 const secret = "key"
 const contentType = "application/json"
 
+// TODO: consider useing RSA for more secure communication
 var hs256 = jwt.NewHS256(secret)
 
 type TokenDto struct {
@@ -60,11 +62,11 @@ type TSpinDto struct {
 	Stops TStops   `json:"stops"`
 }
 
-func newTSpinDto(s TSpin) TSpinDto {
+func newTSpinDto(s TBaseSpin) TSpinDto {
 	return TSpinDto{
-		Type:  s.spType,
-		Stops: s.stops,
-		Total: s.total,
+		Type:  s.SpinType,
+		Stops: s.Stops,
+		Total: s.Total,
 	}
 }
 
@@ -76,14 +78,14 @@ type ResponseDto struct {
 
 func newResponseDto(s IMachineState) ResponseDto {
 	r := ResponseDto{}
-	r.Total = s.getWin()
+	r.Total = s.GetWin()
 
-	for _, sp := range s.getSpins() {
+	for _, sp := range s.GetSpins() {
 		spinDto := newTSpinDto(sp)
 		r.Spins = append(r.Spins, spinDto)
 	}
 
-	t := newToken(s.getUid(), s.getBet(), s.getChips())
+	t := newToken(s.GetUid(), s.GetBet(), s.GetChips())
 	sgn, err := t.pack()
 	if err == nil {
 		r.JWT = string(sgn)

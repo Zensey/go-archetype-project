@@ -1,11 +1,9 @@
 package main
 
 import (
+	"errors"
 	"math/rand"
 )
-
-type Symbol int
-type SpinType int
 
 const (
 	Atkins = Symbol(iota)
@@ -38,16 +36,12 @@ const (
 	nReels    = 5
 	nRows     = 3 // n of visible rows (horizontal)
 	nLines    = 20
-
-	mainSpin = SpinType(iota)
-	freeSpin
 )
 
 type (
 	TReel    [nReelSyms]Symbol
 	TPays    [nReels]int
 	TWinLine [nReels]int
-	TStops   [nReels]int
 	TSymRow  [nReels]Symbol
 
 	TSpin struct {
@@ -59,11 +53,17 @@ type (
 	}
 
 	TState struct {
-		TSpin    // current spin
+		TSpin // current spin
+
 		freeRuns int
 		spins    []TSpin // played spins
-		bet      int
-		chips    int
+
+		uid   string
+		bet   int
+		chips int
+		win   int // total win
+
+		isInitialized bool // for debug purposes
 	}
 )
 
@@ -82,7 +82,6 @@ var PayTable = [nSymbols]TPays{
 	Scatter:      {100, 25, 5, 0, 0},
 }
 
-// repeats = [1..5]
 func getPay(sym Symbol, repeats int) int {
 	if repeats > 0 {
 		return PayTable[sym][nReels-repeats]
@@ -90,7 +89,7 @@ func getPay(sym Symbol, repeats int) int {
 	return 0
 }
 
-var Reels = [5]TReel{
+var Reels = [nReels]TReel{
 	{Scatter, Sym9, Sym2, Sym4, Sym8, Sym5, Sym7, Sym9, Sym4, Sym6, Sym3, Sym8, Sym5, Sym9, Sym1, Sym3, Sym6, Sym7, Sym5, Wild, Sym8, Sym9, Sym2, Sym7, Sym5, Scatter, Sym6, Sym8, Sym4, Sym3, Sym1, Sym6},
 	{Sym9, Sym3, Sym1, Sym4, Sym7, Sym9, Sym2, Sym6, Sym8, Sym1, Sym4, Sym9, Sym2, Wild, Sym6, Sym5, Sym7, Sym8, Sym4, Sym3, Scatter, Sym9, Sym6, Sym7, Sym8, Sym5, Sym3, Sym9, Sym1, Sym2, Sym7, Sym8},
 	{Sym2, Sym6, Sym5, Scatter, Sym7, Sym9, Sym6, Sym2, Sym4, Sym8, Sym1, Sym3, Sym6, Sym9, Sym7, Sym4, Sym5, Sym8, Sym9, Sym3, Sym2, Sym4, Sym8, Sym7, Sym5, Wild, Sym3, Sym8, Sym6, Sym7, Sym9, Sym1},
@@ -123,10 +122,6 @@ var WinLines = [nLines]TWinLine{
 
 func getReelSymSeq(r int, mid int) (ret [3]Symbol) {
 	reel := Reels[r]
-	//ind := mid - 1 - 1
-	//if ind < 0 {
-	//	ind = nReelSyms + ind
-	//}
 	ind := (nReelSyms + mid - 1 - 1) % nReelSyms
 
 	for i := 0; i < nRows; i++ {
@@ -146,7 +141,6 @@ func (s *TState) calcLineWin() int {
 			}
 			break
 		}
-		//return PayTable[firstSym][nReels-repeats]
 		return getPay(firstSym, repeats)
 	}
 
@@ -166,13 +160,8 @@ func (s *TState) calcLineWin() int {
 			}
 		}
 	}
-
 	//fmt.Println("calcLineWin > sum", sum)
 	return sum
-}
-
-func (s *TState) isSufficientChips() bool {
-	return s.chips >= s.bet
 }
 
 func (s *TState) calcSingleSpinWining(spinType SpinType) int {
@@ -217,6 +206,7 @@ func (s *TState) calcSingleSpinWining(spinType SpinType) int {
 	s.total = sum * coins
 	//fmt.Println("c sc >", s.total, sum, getPay(Scatter, scatters), scatters, spinType == freeSpin, coins)
 
+	s.win += s.total
 	s.chips += s.total
 	s.spType = spinType
 	s.spins = append(s.spins, s.TSpin)
@@ -224,30 +214,56 @@ func (s *TState) calcSingleSpinWining(spinType SpinType) int {
 	return s.total
 }
 
-func (s *TState) stop() {
+func (s *TState) stopRandom() {
+	s.stops = make(TStops, nReels)
 	for r := 0; r < nReels; r++ {
 		s.stops[r] = rand.Intn(32)
 	}
+	//fmt.Println("stopRandom > ", s.stops)
 }
 
-func newTState(bet, chips int) TState {
-	return TState{
+func newTState(uid string, bet, chips int) *TState {
+	return &TState{
+		uid:   uid,
 		bet:   bet,
 		chips: chips,
 	}
 }
+func (s TState) getSpins() []TSpin {
+	return s.spins
+}
+func (s TState) getUid() string {
+	return s.uid
+}
+func (s TState) getBet() int {
+	return s.bet
+}
+func (s TState) getChips() int {
+	return s.chips
+}
+func (s TState) getWin() int {
+	return s.win
+}
 
-func (s *TState) play() {
+func (s *TState) isSufficientChips() bool {
+	return s.chips >= s.bet
+}
 
+func (s *TState) play() error {
+	//fmt.Println("play> ", !isInitialized, s.chips)
 	if !s.isSufficientChips() {
-		// error ?
-		return
+		return errors.New("insufficient chips")
+	}
+
+	if !s.isInitialized {
+		//fmt.Println("st >")
+		s.stopRandom()
 	}
 	s.calcSingleSpinWining(mainSpin)
 	for s.freeRuns > 0 {
-		s.stop()
+		s.stopRandom()
 		s.calcSingleSpinWining(freeSpin)
 		s.freeRuns--
 	}
-	//fmt.Println("chips >", s.chips, len(s.spins))
+	return nil
 }

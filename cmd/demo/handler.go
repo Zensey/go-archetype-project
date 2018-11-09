@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/gob"
-	"net"
 	"net/http"
 	"os"
 	"strconv"
@@ -13,13 +12,14 @@ import (
 )
 
 const (
-	throttlePeriod = time.Second * 5
-	maxRequests    = 20
+	throttlePeriodSec = 5
+	maxRequests       = 20
+	nanoSecMultiplier = 1e9
 )
 
 type clientState struct {
 	address      string
-	theBeginning time.Time
+	theBeginning int64
 	nRequests    int
 
 	sync.Mutex
@@ -27,6 +27,7 @@ type clientState struct {
 
 type Handler struct {
 	logger.Logger
+
 	mux      *http.ServeMux
 	requests []int64
 	clients  map[string]*clientState
@@ -67,44 +68,49 @@ func nowNano() int64 {
 }
 
 func (s *Handler) throttle(ip string) {
-	now := time.Now()
+	now := nowNano()
 
 	// global lock
 	s.Lock()
-	c, ok := s.clients[ip]
-	if !ok {
+	c := s.clients[ip]
+	if c == nil {
 		c = &clientState{
 			address:      ip,
 			theBeginning: now,
 			nRequests:    0,
 		}
+		s.clients[ip] = c
 	}
 	s.Unlock()
 
 	// lock on a specific entry
 	c.Lock()
 	c.nRequests++
-	if c.theBeginning.Before(now) && c.nRequests == 20 {
-		rest := c.theBeginning.Add(throttlePeriod).Sub(now)
-		time.Sleep(rest)
+	restNano := c.theBeginning + throttlePeriodSec*nanoSecMultiplier - now // calc the rest of period [nanosec]
+	//s.Info("throttle", ip, c.nRequests, c.theBeginning, now, restNano,)
+
+	if restNano > 0 && c.nRequests > maxRequests {
+		time.Sleep(time.Duration(restNano) * time.Nanosecond)
+		c.nRequests = 1
+		c.theBeginning = nowNano()
+		s.Info("throttle reset for", ip)
 	}
-	c.nRequests = 1
-	c.theBeginning = time.Now()
 	c.Unlock()
 }
 
 func (s *Handler) index(w http.ResponseWriter, r *http.Request) {
-	if r.RequestURI != "/" {
+	if r.URL.Path != "/" {
 		return
 	}
 	now := nowNano()
 
-	ip, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
-		s.Error(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+	//ip, _, err := net.SplitHostPort(r.RemoteAddr)
+	//if err != nil {
+	//	s.Error(err)
+	//	w.WriteHeader(http.StatusInternalServerError)
+	//	return
+	//}
+	ip := r.URL.Query()["ip"][0]
 	s.throttle(ip)
 
 	s.Lock()
@@ -133,6 +139,7 @@ func (s *Handler) SaveState() error {
 	return gob.NewEncoder(f).Encode(s.requests)
 }
 
+//LoadState
 func (s *Handler) LoadState() error {
 	s.Info("Handler > Load state")
 

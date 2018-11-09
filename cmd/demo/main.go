@@ -15,7 +15,7 @@ var version string
 
 const (
 	address    = ":8080"
-	ttlNanoSec = 60 * 1e9
+	ttlNanoSec = 60 * 1e9 // 60 sec
 	dataFile   = "/tmp/codingTask.dat"
 )
 

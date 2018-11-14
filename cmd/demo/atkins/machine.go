@@ -32,6 +32,7 @@ const (
 	Sym8 = Bacon
 	Sym9 = Mayonnaise
 )
+
 const (
 	nSymbols  = Scatter + 1
 	nReelSyms = 32
@@ -41,33 +42,17 @@ const (
 )
 
 type (
-	TReel    [nReelSyms]Symbol
-	TPays    [nReels]int
-	TWinLine [nReels]int
-	TSymRow  [nReels]Symbol
-
-	TSpin struct {
-		TBaseSpin
-		seq      TSymRow
-		scatters int
-	}
-
-	TState struct {
+	TAtkinsState struct {
+		TBaseState
 		TSpin // current spin
 
-		freeRuns int
-		spins    []TSpin // played spins
-
-		uid   string
-		bet   int
-		chips int
-		win   int // Total win
-
+		scatters      int
+		freeRuns      int
 		isInitialized bool // for debug purposes
 	}
 )
 
-var PayTable = [nSymbols]TPays{
+var PayTable = [nSymbols][nReels]int{
 	/*             5     4    3   2  1   // n repeats in a row in a given line    */
 	Atkins:       {5000, 500, 50, 5, 0},
 	Steak:        {1000, 200, 40, 3, 0},
@@ -89,7 +74,7 @@ func getPay(sym Symbol, repeats int) int {
 	return 0
 }
 
-var Reels = [nReels]TReel{
+var Reels = [nReels][nReelSyms]Symbol{
 	{Scatter, Sym9, Sym2, Sym4, Sym8, Sym5, Sym7, Sym9, Sym4, Sym6, Sym3, Sym8, Sym5, Sym9, Sym1, Sym3, Sym6, Sym7, Sym5, Wild, Sym8, Sym9, Sym2, Sym7, Sym5, Scatter, Sym6, Sym8, Sym4, Sym3, Sym1, Sym6},
 	{Sym9, Sym3, Sym1, Sym4, Sym7, Sym9, Sym2, Sym6, Sym8, Sym1, Sym4, Sym9, Sym2, Wild, Sym6, Sym5, Sym7, Sym8, Sym4, Sym3, Scatter, Sym9, Sym6, Sym7, Sym8, Sym5, Sym3, Sym9, Sym1, Sym2, Sym7, Sym8},
 	{Sym2, Sym6, Sym5, Scatter, Sym7, Sym9, Sym6, Sym2, Sym4, Sym8, Sym1, Sym3, Sym6, Sym9, Sym7, Sym4, Sym5, Sym8, Sym9, Sym3, Sym2, Sym4, Sym8, Sym7, Sym5, Wild, Sym3, Sym8, Sym6, Sym7, Sym9, Sym1},
@@ -97,7 +82,7 @@ var Reels = [nReels]TReel{
 	{Sym8, Scatter, Sym1, Sym2, Sym7, Sym4, Sym6, Sym8, Sym3, Sym7, Sym4, Sym2, Sym6, Sym1, Sym9, Sym5, Sym4, Sym2, Wild, Sym6, Sym3, Sym9, Sym5, Sym2, Sym8, Sym6, Sym1, Sym9, Sym4, Sym5, Sym7, Sym3},
 }
 
-var WinLines = [nLines]TWinLine{
+var WinLines = [nLines][nReels]int{
 	{2, 2, 2, 2, 2},
 	{1, 1, 1, 1, 1},
 	{3, 3, 3, 3, 3},
@@ -133,42 +118,24 @@ func getReelSymSeq(r int, mid int) (ret [3]Symbol) {
 
 /////////////////////////////////////////////////////////////
 
-func NewAtkins(uid string, bet, chips int) *TState {
-	return &TState{
-		uid:   uid,
-		bet:   bet,
-		chips: chips,
+func NewAtkins(uid string, bet, chips int) *TAtkinsState {
+	s := &TAtkinsState{
+		TBaseState: TBaseState{
+			Uid:   uid,
+			Bet:   bet,
+			Chips: chips,
+		},
+		TSpin: NewTBaseSpin(nReels),
 	}
+
+	return s
 }
 
-func (s TState) GetSpins() (res []TBaseSpin) {
-	for _, v := range s.spins {
-		res = append(res, v.TBaseSpin)
-	}
-	return
-}
-
-func (s TState) GetUid() string {
-	return s.uid
-}
-
-func (s TState) GetBet() int {
-	return s.bet
-}
-
-func (s TState) GetChips() int {
-	return s.chips
-}
-
-func (s TState) GetWin() int {
-	return s.win
-}
-
-func (s *TState) calcLineWin() int {
+func (s *TAtkinsState) calcLineWin() int {
 	calcSum := func(firstSym Symbol) int {
 		repeats := 1
 		for i := 1; i < nReels; i++ {
-			if s.seq[i] == firstSym || (s.seq[i] == Wild && firstSym != Scatter) { // wild cannot subst scatter
+			if s.Row[i] == firstSym || (s.Row[i] == Wild && firstSym != Scatter) { // wild cannot subst scatter
 				repeats++
 				continue
 			}
@@ -177,14 +144,14 @@ func (s *TState) calcLineWin() int {
 		return getPay(firstSym, repeats)
 	}
 
-	firstSym := s.seq[0]
+	firstSym := s.Row[0]
 	sum := calcSum(firstSym)
 
 	// alternative case: wilds are first; treat them as first-non-wild symbol
 	if firstSym == Wild {
 		for i := 1; i < nReels; i++ {
-			if s.seq[i] != Wild {
-				sumAlt := calcSum(s.seq[i])
+			if s.Row[i] != Wild {
+				sumAlt := calcSum(s.Row[i])
 				if sumAlt > sum { // highest win pays
 					sum = sumAlt
 					break
@@ -196,11 +163,13 @@ func (s *TState) calcLineWin() int {
 	return sum
 }
 
-func (s *TState) calcSingleSpinWining(spinType SpinType) int {
+func (s *TAtkinsState) calcSingleSpinWining(spinType SpinType) int {
+	s.SpinType = spinType
 	if spinType == MainSpin {
-		s.chips = s.chips - s.bet
+		s.WithdrawBet()
 	}
-	coins := int(s.bet / nLines)
+
+	coins := int(s.Bet / nLines)
 	scatters := 0
 
 	var T [nReels][nRows]Symbol // visible grid
@@ -225,39 +194,36 @@ func (s *TState) calcSingleSpinWining(spinType SpinType) int {
 		payLine := WinLines[l]
 		for col := 0; col < nReels; col++ {
 			row := payLine[col] - 1
-			s.seq[col] = T[col][row]
+			s.Row[col] = T[col][row]
 		}
 		sum += s.calcLineWin()
 	}
 	sum += getPay(Scatter, scatters) // scatter pay
-
 	if spinType == FreeSpin {
 		sum = sum * 3 // in free games all wins are tripled
 	}
-	s.Total = sum * coins
 
-	s.win += s.Total
-	s.chips += s.Total
-	s.SpinType = spinType
-	s.spins = append(s.spins, s.TSpin)
+	s.Total = sum * coins
+	s.HandleSpin(s.TSpin)
 
 	return s.Total
 }
 
-func (s *TState) stopRandom() {
-	s.Stops = make(TStops, nReels)
+func (s *TAtkinsState) stopRandom() {
 	for r := 0; r < nReels; r++ {
-		s.Stops[r] = rand.Intn(32)
+		s.Stops[r] = rand.Intn(nReelSyms)
 	}
 }
 
-func (s *TState) Play() error {
-	if s.chips < s.bet {
+func (s *TAtkinsState) Play() error {
+	if s.Chips < s.Bet {
 		return errors.New("insufficient chips")
 	}
+
 	if !s.isInitialized {
 		s.stopRandom()
 	}
+
 	s.calcSingleSpinWining(MainSpin)
 	for s.freeRuns > 0 {
 		s.stopRandom()
@@ -265,4 +231,8 @@ func (s *TState) Play() error {
 		s.freeRuns--
 	}
 	return nil
+}
+
+func (s *TAtkinsState) GetBaseState() TBaseState {
+	return s.TBaseState
 }

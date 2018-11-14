@@ -5,15 +5,11 @@ import (
 	"errors"
 )
 
-type TStops []int
-type Symbol int
-type SpinType int
-
-type TBaseSpin struct {
-	SpinType SpinType
-	Stops    TStops
-	Total    int
-}
+type (
+	Symbol   int
+	SpinType int
+	TSymRow  []Symbol // length: nReels
+)
 
 const (
 	MainSpin = SpinType(iota)
@@ -43,4 +39,45 @@ func (u *SpinType) UnmarshalJSON(data []byte) error {
 		return errors.New("unknown spin type " + v)
 	}
 	return nil
+}
+
+///////////////////////////////////////////////////////////
+type TSpin struct {
+	Stops []int // position of a reel
+	Total int
+	Row   TSymRow
+
+	SpinType SpinType
+}
+
+func NewTBaseSpin(nReels int) TSpin {
+	return TSpin{
+		Row:   make([]Symbol, nReels),
+		Stops: make([]int, nReels),
+	}
+}
+
+///////////////////////////////////////////////////////////
+type TBaseState struct {
+	Uid   string
+	Bet   int
+	Chips int
+	Win   int // Total win
+
+	spins []TSpin // played spins
+}
+
+func (s *TBaseState) HandleSpin(spin TSpin) {
+	s.Win += spin.Total
+	s.Chips += spin.Total
+
+	s.spins = append(s.spins, spin)
+}
+
+func (s *TBaseState) WithdrawBet() {
+	s.Chips = s.Chips - s.Bet
+}
+
+func (s *TBaseState) GetSpins() []TSpin {
+	return s.spins
 }

@@ -55,14 +55,13 @@ func (req *TokenDto) pack() ([]byte, error) {
 }
 
 /////////////////////////////////////////////////////
-
 type TSpinDto struct {
 	Type  SpinType `json:"type"`
 	Total int      `json:"total"`
-	Stops TStops   `json:"stops"`
+	Stops []int    `json:"stops"`
 }
 
-func newTSpinDto(s TBaseSpin) TSpinDto {
+func newTSpinDto(s TSpin) TSpinDto {
 	return TSpinDto{
 		Type:  s.SpinType,
 		Stops: s.Stops,
@@ -78,14 +77,15 @@ type ResponseDto struct {
 
 func newResponseDto(s IMachineState) ResponseDto {
 	r := ResponseDto{}
-	r.Total = s.GetWin()
+	bs := s.GetBaseState()
+	r.Total = bs.Win
 
-	for _, sp := range s.GetSpins() {
+	for _, sp := range bs.GetSpins() {
 		spinDto := newTSpinDto(sp)
 		r.Spins = append(r.Spins, spinDto)
 	}
 
-	t := newToken(s.GetUid(), s.GetBet(), s.GetChips())
+	t := newToken(bs.Uid, bs.Bet, bs.Chips)
 	sgn, err := t.pack()
 	if err == nil {
 		r.JWT = string(sgn)

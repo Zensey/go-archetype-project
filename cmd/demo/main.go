@@ -18,6 +18,7 @@ const address = ":8080"
 
 type server struct {
 	logger.Logger
+
 	srv http.Server
 	hnd *Handler
 }

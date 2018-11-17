@@ -14,7 +14,7 @@ import (
 	"strings"
 	"sync"
 
-	"bitbucket.org/Zensey/go-archetype-project/pkg/logger"
+	"github.com/Zensey/go-archetype-project/pkg/logger"
 	"github.com/nfnt/resize"
 )
 
@@ -32,12 +32,11 @@ func (r TResponse) decodeAndAddThumb(rr io.Reader, l logger.Logger) {
 
 func (r TResponse) writeResp(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
+	buff := bytes.Buffer{}
 	for _, v := range *r.thumbnails {
-		//srv.log.Info("srv> t")
-		var buff bytes.Buffer
+		buff.Reset()
 		png.Encode(&buff, v)
 		encoded := base64.StdEncoding.EncodeToString(buff.Bytes())
-
 		r.Thumbs = append(r.Thumbs, encoded)
 	}
 	encoder := json.NewEncoder(w)
@@ -60,10 +59,9 @@ func (r *TRequest) handleImgs(s *Handler, handleImg decodeAndAddThumb) error {
 
 func (r *TRequest) handleUrls(s *Handler, handleImg decodeAndAddThumb) error {
 	for _, u := range r.Urls {
-		//srv.log.Info("srv> url", u)
 		resp, err := http.Get(u)
 		if err != nil {
-			s.Info("srv> get", err)
+			s.Info("get error:", err)
 			continue
 		}
 		handleImg(resp.Body, s.Logger)
@@ -110,7 +108,6 @@ func (s *Handler) index(w http.ResponseWriter, r *http.Request) {
 					break
 				}
 				contentType := nr.Header["Content-Type"][0]
-				//srv.log.Info("srv> fileName", nr.FileName(), contentType, ok, nr.FormName())
 				switch contentType {
 				case "application/octet-stream":
 					resp.decodeAndAddThumb(nr, s.Logger)

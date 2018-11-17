@@ -11,7 +11,7 @@ fi
 workspace="$PWD/build/_workspace"
 root="$PWD"
 root_name="go-archetype-project"
-sdir="$workspace/src/bitbucket.org/Zensey"
+sdir="$workspace/src/github.com/Zensey"
 
 if [ ! -L "$sdir/$root_name" ]; then
     mkdir -p "$sdir"

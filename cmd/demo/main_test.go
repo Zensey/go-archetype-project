@@ -16,7 +16,7 @@ import (
 	"runtime/debug"
 	"testing"
 
-	"bitbucket.org/Zensey/go-archetype-project/pkg/logger"
+	"github.com/Zensey/go-archetype-project/pkg/logger"
 )
 
 var l logger.Logger

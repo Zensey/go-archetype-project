@@ -4,7 +4,7 @@ import (
 	"image"
 	"io"
 
-	"bitbucket.org/Zensey/go-archetype-project/pkg/logger"
+	"github.com/Zensey/go-archetype-project/pkg/logger"
 )
 
 type TRequest struct {

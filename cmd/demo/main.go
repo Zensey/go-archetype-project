@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"time"
 
-	"bitbucket.org/Zensey/go-archetype-project/pkg/logger"
+	"github.com/Zensey/go-archetype-project/pkg/logger"
 )
 
 var version string

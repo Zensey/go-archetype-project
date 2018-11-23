@@ -42,7 +42,6 @@ func (s *Handler) spins(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: for extensibility here we can employ a fabric
 	st := atkins.NewAtkins(token.Uid, token.Bet, token.Chips)
 	err = st.Play()
 	if err != nil {

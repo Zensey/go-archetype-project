@@ -5,9 +5,11 @@ import (
 	"github.com/gbrlsnchs/jwt"
 )
 
-const spinsApiUri = "/api/machines/atkins-diet/spins"
-const secret = "key"
-const contentType = "application/json"
+const (
+	spinsApiUri = "/api/machines/atkins-diet/spins"
+	secret      = "key"
+	contentType = "application/json"
+)
 
 // TODO: consider useing RSA for more secure communication
 var hs256 = jwt.NewHS256(secret)

@@ -9,8 +9,8 @@ import (
 	_ "image/jpeg"
 	"image/png"
 	"io"
+	"mime/multipart"
 	"net/http"
-	"runtime/debug"
 	"strings"
 	"sync"
 
@@ -23,9 +23,9 @@ const thumbDim = 100
 func (r TResponse) decodeAndAddThumb(rr io.Reader, l logger.Logger) {
 	im, imgType, err := image.Decode(rr)
 	if err != nil {
-		l.Info("srv> image.Decode", err)
+		l.Info("image.Decode err", err)
 	} else {
-		l.Info("srv> i got", imgType)
+		l.Info("i got", imgType)
 		*r.thumbnails = append(*r.thumbnails, resize.Resize(thumbDim, thumbDim, im, resize.NearestNeighbor))
 	}
 }
@@ -85,22 +85,19 @@ func NewHandler(log logger.Logger) *Handler {
 
 func (s *Handler) index(w http.ResponseWriter, r *http.Request) {
 	s.Info(r.RequestURI)
-	defer func() {
-		if r := recover(); r != nil {
-			s.Infof("%srv: %srv", r, debug.Stack())
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte("500"))
-		}
-	}()
+	var (
+		err    error
+		reader *multipart.Reader
+	)
 
 	hh, ok := r.Header["Content-Type"]
 	if ok {
 		resp := NewTResponse()
 		switch {
 		case strings.HasPrefix(hh[0], "multipart/form-data;"):
-			reader, err := r.MultipartReader()
+			reader, err = r.MultipartReader()
 			if err != nil {
-				panic(err)
+				goto error
 			}
 			for {
 				nr, err := reader.NextPart()
@@ -123,13 +120,19 @@ func (s *Handler) index(w http.ResponseWriter, r *http.Request) {
 		case strings.HasPrefix(hh[0], "application/json"):
 			req, err := ReadTRequest(r.Body)
 			if err != nil {
-				panic(err)
+				goto error
 			}
 			req.handleImgs(s, resp.decodeAndAddThumb)
 			req.handleUrls(s, resp.decodeAndAddThumb)
 		}
 		resp.writeResp(w)
 	}
+	return
+error:
+	s.Error("index err:", err)
+	w.WriteHeader(http.StatusInternalServerError)
+	w.Write([]byte("500"))
+
 }
 
 func (s *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {

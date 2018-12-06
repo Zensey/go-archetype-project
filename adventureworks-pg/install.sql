@@ -174,34 +174,6 @@ CREATE SCHEMA Person
 
 COMMENT ON SCHEMA Person IS 'Contains objects related to names and addresses of customers, vendors, and employees';
 
-SELECT 'Copying data into Person.BusinessEntity';
-\copy Person.BusinessEntity FROM './BusinessEntity.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Person.Person';
-\copy Person.Person FROM './Person.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Person.StateProvince';
-\copy Person.StateProvince FROM './StateProvince.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Person.Address';
-\copy Person.Address FROM './Address.csv' DELIMITER E'\t' CSV ENCODING 'latin1';
-SELECT 'Copying data into Person.AddressType';
-\copy Person.AddressType FROM './AddressType.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Person.BusinessEntityAddress';
-\copy Person.BusinessEntityAddress FROM './BusinessEntityAddress.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Person.ContactType';
-\copy Person.ContactType FROM './ContactType.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Person.BusinessEntityContact';
-\copy Person.BusinessEntityContact FROM './BusinessEntityContact.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Person.EmailAddress';
-\copy Person.EmailAddress FROM './EmailAddress.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Person.Password';
-\copy Person.Password FROM './Password.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Person.PhoneNumberType';
-\copy Person.PhoneNumberType FROM './PhoneNumberType.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Person.PersonPhone';
-\copy Person.PersonPhone FROM './PersonPhone.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Person.CountryRegion';
-\copy Person.CountryRegion FROM './CountryRegion.csv' DELIMITER E'\t' CSV;
-
-
 CREATE SCHEMA HumanResources
   CREATE TABLE Department(
     DepartmentID SERIAL NOT NULL, -- smallint
@@ -266,19 +238,6 @@ CREATE SCHEMA HumanResources
   );
 
 COMMENT ON SCHEMA HumanResources IS 'Contains objects related to employees and departments.';
-
-SELECT 'Copying data into HumanResources.Department';
-\copy HumanResources.Department FROM './Department.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into HumanResources.Employee';
-\copy HumanResources.Employee FROM './Employee.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into HumanResources.EmployeeDepartmentHistory';
-\copy HumanResources.EmployeeDepartmentHistory FROM './EmployeeDepartmentHistory.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into HumanResources.EmployeePayHistory';
-\copy HumanResources.EmployeePayHistory FROM './EmployeePayHistory.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into HumanResources.JobCandidate';
-\copy HumanResources.JobCandidate FROM './JobCandidate.csv' DELIMITER E'\t' CSV ENCODING 'latin1';
-SELECT 'Copying data into HumanResources.Shift';
-\copy HumanResources.Shift FROM './Shift.csv' DELIMITER E'\t' CSV;
 
 -- Calculated column that needed to be there just for the CSV import
 ALTER TABLE HumanResources.Employee DROP COLUMN OrganizationLevel;
@@ -626,46 +585,6 @@ CREATE SCHEMA Production
 
 COMMENT ON SCHEMA Production IS 'Contains objects related to products, inventory, and manufacturing.';
 
-SELECT 'Copying data into Production.BillOfMaterials';
-\copy Production.BillOfMaterials FROM 'BillOfMaterials.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Production.Culture';
-\copy Production.Culture FROM 'Culture.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Production.Document';
-\copy Production.Document FROM 'Document.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Production.ProductCategory';
-\copy Production.ProductCategory FROM 'ProductCategory.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Production.ProductSubcategory';
-\copy Production.ProductSubcategory FROM 'ProductSubcategory.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Production.ProductModel';
-\copy Production.ProductModel FROM 'ProductModel.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Production.Product';
-\copy Production.Product FROM 'Product.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Production.ProductCostHistory';
-\copy Production.ProductCostHistory FROM 'ProductCostHistory.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Production.ProductDescription';
-\copy Production.ProductDescription FROM 'ProductDescription.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Production.ProductDocument';
-\copy Production.ProductDocument FROM 'ProductDocument.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Production.Location';
-\copy Production.Location FROM 'Location.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Production.ProductInventory';
-\copy Production.ProductInventory FROM 'ProductInventory.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Production.ProductListPriceHistory';
-\copy Production.ProductListPriceHistory FROM 'ProductListPriceHistory.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Production.Illustration';
-\copy Production.Illustration FROM 'Illustration.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Production.ProductModelIllustration';
-\copy Production.ProductModelIllustration FROM 'ProductModelIllustration.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Production.ProductModelProductDescriptionCulture';
-\copy Production.ProductModelProductDescriptionCulture FROM 'ProductModelProductDescriptionCulture.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Production.ProductPhoto';
-\copy Production.ProductPhoto FROM 'ProductPhoto.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Production.ProductProductPhoto';
-\copy Production.ProductProductPhoto FROM 'ProductProductPhoto.csv' DELIMITER E'\t' CSV;
-
--- This doesn't work:
--- SELECT 'Copying data into Production.ProductReview';
--- \copy Production.ProductReview FROM 'ProductReview.csv' DELIMITER '  ' CSV;
 
 -- so instead ...
 INSERT INTO Production.ProductReview (ProductReviewID, ProductID, ReviewerName, ReviewDate, EmailAddress, Rating, Comments, ModifiedDate) VALUES
@@ -707,18 +626,6 @@ The Road-550-W frame is available in a variety of sizes and colors and has the s
 we think that after a test drive you''l find the quality and performance above and beyond . You''ll have a grin on your face and be itching to get out on the road for more. While designed for serious road racing, the Road-550-W would be an excellent choice for just about any terrain and 
 any level of experience. It''s a huge step in the right direction for female cyclists and well worth your consideration and hard-earned money.', '2013-11-15 00:00:00');
 
-SELECT 'Copying data into Production.ScrapReason';
-\copy Production.ScrapReason FROM 'ScrapReason.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Production.TransactionHistory';
-\copy Production.TransactionHistory FROM 'TransactionHistory.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Production.TransactionHistoryArchive';
-\copy Production.TransactionHistoryArchive FROM 'TransactionHistoryArchive.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Production.UnitMeasure';
-\copy Production.UnitMeasure FROM 'UnitMeasure.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Production.WorkOrder';
-\copy Production.WorkOrder FROM 'WorkOrder.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Production.WorkOrderRouting';
-\copy Production.WorkOrderRouting FROM 'WorkOrderRouting.csv' DELIMITER E'\t' CSV;
 
 -- Calculated columns that needed to be there just for the CSV import
 ALTER TABLE Production.WorkOrder DROP COLUMN StockedQty;
@@ -971,16 +878,6 @@ CREATE SCHEMA Purchasing
 
 COMMENT ON SCHEMA Purchasing IS 'Contains objects related to vendors and purchase orders.';
 
-SELECT 'Copying data into Purchasing.ProductVendor';
-\copy Purchasing.ProductVendor FROM 'ProductVendor.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Purchasing.PurchaseOrderDetail';
-\copy Purchasing.PurchaseOrderDetail FROM 'PurchaseOrderDetail.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Purchasing.PurchaseOrderHeader';
-\copy Purchasing.PurchaseOrderHeader FROM 'PurchaseOrderHeader.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Purchasing.ShipMethod';
-\copy Purchasing.ShipMethod FROM 'ShipMethod.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Purchasing.Vendor';
-\copy Purchasing.Vendor FROM 'Vendor.csv' DELIMITER E'\t' CSV;
 
 -- Calculated columns that needed to be there just for the CSV import
 ALTER TABLE Purchasing.PurchaseOrderDetail DROP COLUMN LineTotal;
@@ -1195,44 +1092,6 @@ CREATE SCHEMA Sales
 
 COMMENT ON SCHEMA Sales IS 'Contains objects related to customers, sales orders, and sales territories.';
 
-SELECT 'Copying data into Sales.CountryRegionCurrency';
-\copy Sales.CountryRegionCurrency FROM 'CountryRegionCurrency.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Sales.CreditCard';
-\copy Sales.CreditCard FROM 'CreditCard.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Sales.Currency';
-\copy Sales.Currency FROM 'Currency.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Sales.CurrencyRate';
-\copy Sales.CurrencyRate FROM 'CurrencyRate.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Sales.Customer';
-\copy Sales.Customer FROM 'Customer.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Sales.PersonCreditCard';
-\copy Sales.PersonCreditCard FROM 'PersonCreditCard.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Sales.SalesOrderDetail';
-\copy Sales.SalesOrderDetail FROM 'SalesOrderDetail.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Sales.SalesOrderHeader';
-\copy Sales.SalesOrderHeader FROM 'SalesOrderHeader.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Sales.SalesOrderHeaderSalesReason';
-\copy Sales.SalesOrderHeaderSalesReason FROM 'SalesOrderHeaderSalesReason.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Sales.SalesPerson';
-\copy Sales.SalesPerson FROM 'SalesPerson.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Sales.SalesPersonQuotaHistory';
-\copy Sales.SalesPersonQuotaHistory FROM 'SalesPersonQuotaHistory.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Sales.SalesReason';
-\copy Sales.SalesReason FROM 'SalesReason.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Sales.SalesTaxRate';
-\copy Sales.SalesTaxRate FROM 'SalesTaxRate.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Sales.SalesTerritory';
-\copy Sales.SalesTerritory FROM 'SalesTerritory.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Sales.SalesTerritoryHistory';
-\copy Sales.SalesTerritoryHistory FROM 'SalesTerritoryHistory.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Sales.ShoppingCartItem';
-\copy Sales.ShoppingCartItem FROM 'ShoppingCartItem.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Sales.SpecialOffer';
-\copy Sales.SpecialOffer FROM 'SpecialOffer.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Sales.SpecialOfferProduct';
-\copy Sales.SpecialOfferProduct FROM 'SpecialOfferProduct.csv' DELIMITER E'\t' CSV;
-SELECT 'Copying data into Sales.Store';
-\copy Sales.Store FROM 'Store.csv' DELIMITER E'\t' CSV;
 
 -- Calculated columns that needed to be there just for the CSV import
 ALTER TABLE Sales.Customer DROP COLUMN AccountNumber;
@@ -2305,10 +2164,6 @@ ALTER TABLE Production.ProductProductPhoto ADD
 ALTER TABLE Production.ProductProductPhoto ADD
     CONSTRAINT "FK_ProductProductPhoto_ProductPhoto_ProductPhotoID" FOREIGN KEY
     (ProductPhotoID) REFERENCES Production.ProductPhoto(ProductPhotoID);
-
-ALTER TABLE Production.ProductReview ADD
-    CONSTRAINT "FK_ProductReview_Product_ProductID" FOREIGN KEY
-    (ProductID) REFERENCES Production.Product(ProductID);
 
 ALTER TABLE Production.ProductSubcategory ADD
     CONSTRAINT "FK_ProductSubcategory_ProductCategory_ProductCategoryID" FOREIGN KEY

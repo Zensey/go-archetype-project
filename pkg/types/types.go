@@ -1,5 +1,7 @@
 package types
 
+import "time"
+
 type Review struct {
 	Name      string `json:"name,omitempty"`
 	Email     string `json:"email,omitempty"`
@@ -17,9 +19,28 @@ type MsgReview struct {
 	Review   string `json:"review,omitempty"`
 }
 
-type DbProdReview struct {
+type RecReview struct {
 	Name      string `db:"reviewername"`
 	Email     string `db:"emailaddress"`
 	ProductID string `db:"productid"`
 	Status    bool   `db:"approved"`
+}
+
+type RowReview struct {
+	Name      string    `db:"reviewername"`
+	Email     string    `db:"emailaddress"`
+	ProductID string    `db:"productid"`
+	Status    *bool     `db:"approved"`
+	Created   time.Time `db:"reviewdate"`
+}
+
+type RowCount struct {
+	Count  *int  `db:"count"`
+	Status *bool `db:"approved"`
+}
+
+type ReportTable struct {
+	Title string
+	Items []RowReview
+	Count []RowCount
 }

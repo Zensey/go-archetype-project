@@ -5,12 +5,14 @@ import (
 	"os/signal"
 	"syscall"
 
+	"fmt"
 	"github.com/Zensey/go-archetype-project/pkg/logger"
 	"github.com/go-redis/redis"
 	"github.com/jmoiron/sqlx"
 )
 
 type App struct {
+	loggerTag string
 	logger.Logger
 	conf Config
 
@@ -25,8 +27,8 @@ type IAppEventHandler interface {
 	OnStop(a *App)
 }
 
-func NewApp(l logger.Logger, eh IAppEventHandler) *App {
-	return &App{Logger: l, eh: eh}
+func NewApp(loggerTag string, eh IAppEventHandler) *App {
+	return &App{eh: eh, loggerTag: loggerTag}
 }
 
 func waitSigTerm() {
@@ -38,10 +40,16 @@ func waitSigTerm() {
 func (app *App) Run() {
 	conf, err := GetConfig()
 	if err != nil {
-		app.Error(err)
+		fmt.Println(err)
 		return
 	}
 	app.conf = conf
+	app.Logger, err = logger.NewLogger(logger.LookupLogLevel(app.conf.LogLevel), app.loggerTag, logger.LookupLogBackend(app.conf.LogBackend))
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
 	if err := app.eh.OnStart(app, conf); err != nil {
 		app.Error("OnStart", err)
 		return

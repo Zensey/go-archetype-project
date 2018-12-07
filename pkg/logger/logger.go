@@ -44,6 +44,31 @@ const (
 	BackendNull
 )
 
+var logBack = map[BackendID]string{
+	BackendConsole: "console",
+	BackendSyslog:  "syslog",
+	BackendFile:    "file",
+	BackendNull:    "null",
+}
+
+func LookupLogLevel(name string) LogLevel {
+	for k, v := range logLevels {
+		if v == name {
+			return k
+		}
+	}
+	return LogLevelNull
+}
+
+func LookupLogBackend(name string) BackendID {
+	for k, v := range logBack {
+		if v == name {
+			return k
+		}
+	}
+	return BackendNull
+}
+
 func NewLogger(lev LogLevel, tag string, backend BackendID) (l Logger, err error) {
 	l.tag = tag
 	l.level = lev
@@ -52,7 +77,7 @@ func NewLogger(lev LogLevel, tag string, backend BackendID) (l Logger, err error
 	case BackendConsole:
 		l.back = newConsoleBackend()
 	case BackendSyslog:
-		l.back = newSyslogBackend(lev, tag)
+		l.back, err = newSyslogBackend(lev, tag)
 	case BackendFile:
 		l.back = newFileBackend(lev, tag)
 	case BackendNull:
@@ -62,7 +87,6 @@ func NewLogger(lev LogLevel, tag string, backend BackendID) (l Logger, err error
 	}
 	return
 }
-
 
 func (l *Logger) Error(a ...interface{}) {
 	l.logPrint(LogLevelError, a...)
@@ -107,7 +131,7 @@ func (l *Logger) logPrintf(sev LogLevel, format string, a ...interface{}) {
 
 func (l *Logger) logPrint(sev LogLevel, a ...interface{}) {
 	s := fmt.Sprintln(a...)
-	s = s[0:len(s)-1]
+	s = s[0 : len(s)-1]
 	l.toBackEnd(sev, s)
 }
 

@@ -10,8 +10,7 @@ type SyslogBackend struct {
 	slog *syslog.Writer
 }
 
-func newSyslogBackend(lev LogLevel, tag string) SyslogBackend {
-	b := SyslogBackend{}
+func newSyslogBackend(lev LogLevel, tag string) (b SyslogBackend, err error) {
 	var priority syslog.Priority
 
 	switch lev {
@@ -26,8 +25,8 @@ func newSyslogBackend(lev LogLevel, tag string) SyslogBackend {
 		priority = syslog.LOG_DEBUG
 	}
 
-	b.slog, _ = syslog.New(priority, tag)
-	return b
+	b.slog, err = syslog.New(priority, tag)
+	return b, err
 }
 func (b SyslogBackend) Write(lev LogLevel, tag, l string) {
 	switch lev {

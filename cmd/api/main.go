@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/Zensey/go-archetype-project/pkg/app"
-	"github.com/Zensey/go-archetype-project/pkg/logger"
 	_ "github.com/lib/pq"
 )
 
@@ -16,18 +15,15 @@ var version string
 const ctxTimeout = 10 * time.Second
 
 type AppEvHandler struct {
-	logger.Logger
 	srv http.Server
 	hnd *Handler
 }
 
 func (a *AppEvHandler) OnStart(app *app.App, conf app.Config) error {
-	err := app.ConnectDb()
-	if err != nil {
+	if err := app.ConnectDb(); err != nil {
 		return err
 	}
-	err = app.ConnectMq()
-	if err != nil {
+	if err := app.ConnectMq(); err != nil {
 		return err
 	}
 
@@ -36,10 +32,10 @@ func (a *AppEvHandler) OnStart(app *app.App, conf app.Config) error {
 	if err != nil {
 		return err
 	}
-	a.Info("Listening on", listener.Addr())
+	app.Info("Listening on", listener.Addr(), "See report on http://localhost"+conf.ApiAddr+"/api/report")
 	a.srv = http.Server{Handler: NewHandler(app)}
 	go a.srv.Serve(listener)
-	return err
+	return nil
 }
 
 func (a *AppEvHandler) OnStop(app *app.App) {
@@ -52,8 +48,7 @@ func (a *AppEvHandler) OnStop(app *app.App) {
 }
 
 func main() {
-	l, _ := logger.NewLogger(logger.LogLevelInfo, "server", logger.BackendConsole)
-	aa := &AppEvHandler{Logger: l}
-	app := app.NewApp(l, app.IAppEventHandler(aa))
+	eh := &AppEvHandler{}
+	app := app.NewApp("api-service", app.IAppEventHandler(eh))
 	app.Run()
 }

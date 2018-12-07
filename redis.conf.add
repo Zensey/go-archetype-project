@@ -1,0 +1,8 @@
+bind 127.0.0.1
+requirepass foobared
+
+rename-command FLUSHDB ""
+rename-command FLUSHALL ""
+rename-command DEBUG ""
+rename-command SHUTDOWN SHUTDOWN_MENOT
+rename-command CONFIG ASC12_CONFIG

@@ -6,14 +6,17 @@ ENV=$(shell pwd)/build/env.sh
 GOBIN=$(shell pwd)/build/_workspace/bin
 PWD=$(shell pwd)
 
-BINARY = demo
-PKG1 = "github.com/Zensey/go-archetype-project/cmd/demo"
+BINARY1 = api
+BINARY2 = worker1
+BINARY3 = worker2
+PKG1 = "github.com/Zensey/go-archetype-project/cmd/api"
 PKG2 = "github.com/Zensey/go-archetype-project/pkg/logger"
+PKG3 = "github.com/Zensey/go-archetype-project/pkg/utils"
 PKGS = $(PKG1) $(PKG2)
 report = lint_report.txt
 
-.DEFAULT_GOAL: $(BINARY)
-all: get-deps $(BINARY)
+.DEFAULT_GOAL: all
+all: get-deps $(BINARY1) $(BINARY2) $(BINARY3) test
 
 get-deps:
 	$(ENV) $(GO) get -u github.com/golang/dep/cmd/dep
@@ -27,7 +30,7 @@ get-deps:
 	$(ENV) $(GOBIN)/dep ensure -v
 
 test:
-	$(ENV) $(GO) test $(PKG1) -v -run Main
+	$(ENV) $(GO) test $(PKG3) -v
 
 lint:
 	$(ENV) golint $(PKGS)  &>> $(report)
@@ -39,16 +42,20 @@ lint:
 	$(ENV) unused $(PKGS)  &>> $(report) ||:
 	$(ENV) interfacer $(PKGS)  &>> $(report)
 
-$(BINARY):
-	$(ENV) $(GO) generate "github.com/Zensey/go-archetype-project/pkg/logger"
-	$(ENV) $(GO) install -v $(LDFLAGS) ./cmd/$(BINARY)
+$(BINARY1):
+	$(ENV) $(GO) install -v $(LDFLAGS) ./cmd/$(BINARY1)
+$(BINARY2):
+	$(ENV) $(GO) install -v $(LDFLAGS) ./cmd/$(BINARY2)
+$(BINARY3):
+	$(ENV) $(GO) install -v $(LDFLAGS) ./cmd/$(BINARY3)
 
 clean:
 	rm -fr build/_workspace/pkg/ $(GOBIN)/*
+	rm -fr vendor
 
 strip-$(BINARY): $(BINARY)
 	strip -s $(GOBIN)/$(BINARY)
 
 docker-build:
 	docker build -t go-archetype-project .
-	docker run --rm --publish 8080:8080 -it go-archetype-project
+	docker run -h docker.local --rm --publish 8888:8888 --publish 5432:5432 -it go-archetype-project

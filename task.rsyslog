@@ -1,0 +1,8 @@
+:syslogtag, startswith, "api-service" /var/log/task/api-service.log
+:syslogtag, startswith, "api-service" stop
+
+:syslogtag, startswith, "worker#1" /var/log/task/worker1.log
+:syslogtag, startswith, "worker#1" stop
+
+:syslogtag, startswith, "worker#2" /var/log/task/worker2.log
+:syslogtag, startswith, "worker#2" stop

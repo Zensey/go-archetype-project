@@ -3,8 +3,8 @@
 set -eux; \
     service rsyslog start; \
     logger -t api-service created by logger; \
-    logger -t worker1 created by logger; \
-    logger -t worker2 created by logger; \
+    logger -t worker#1 created by logger; \
+    logger -t worker#2 created by logger; \
     gosu postgres service postgresql start; \
     gosu postgres psql --command "CREATE USER docker WITH SUPERUSER PASSWORD 'docker';"; \
     gosu postgres createdb -O docker app; \

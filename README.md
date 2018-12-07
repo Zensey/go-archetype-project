@@ -1,6 +1,7 @@
 ## Pre-requisites
 * docker
 * gnu make
+* git
 
 ### How to run
 

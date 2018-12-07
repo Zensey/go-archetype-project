@@ -11,7 +11,7 @@ WORKDIR /app
 
 RUN set -eux; \
     apt-get update; \
-	apt-get install -y postgresql-9.6 gosu nano redis-server screen rsyslog tmux; \
+	apt-get install -y postgresql-9.6 gosu nano redis-server rsyslog tmux; \
 	useradd -r docker; \
 	cat /app/redis.conf.add >> /etc/redis/redis.conf; \
 	echo "host all  all    172.17.0.0/24  md5" >> /etc/postgresql/9.6/main/pg_hba.conf; \
@@ -29,14 +29,4 @@ RUN set -eux; \
 	make all \
 	;
 
-
-#VOLUME  ["/etc/postgresql", "/var/log/postgresql", "/var/lib/postgresql"]
-#USER root
-#RUN make api
-#CMD ["/app/build/_workspace/bin/api"]
-#RUN "/bin/bash"
-
 ENTRYPOINT ["/app/docker_entrypoint.sh"]
-EXPOSE 5432
-
-

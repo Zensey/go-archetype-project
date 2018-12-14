@@ -43,7 +43,7 @@ func (w *statusWriter) Write(b []byte) (int, error) {
 	return n, err
 }
 
-func Log(handler http.Handler, logger logger.Logger) http.HandlerFunc {
+func Log(handler http.Handler, logger *logger.Logger) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		sw := statusWriter{ResponseWriter: w}

@@ -3,26 +3,26 @@ package main
 import (
 	"strconv"
 
-	"github.com/Zensey/go-archetype-project/pkg/app"
 	"github.com/Zensey/go-archetype-project/pkg/logger"
 	"github.com/Zensey/go-archetype-project/pkg/types"
 
+	"github.com/Zensey/go-archetype-project/pkg/config"
 	"github.com/go-redis/redis"
 	"time"
 )
 
 type Handler struct {
-	logger.Logger
-	a *app.App
+	*logger.Logger
+	cc *config.Config
 
 	exit   bool
 	chExit chan struct{}
 }
 
-func newHandler(a *app.App) *Handler {
+func newHandler(cc *config.Config) *Handler {
 	return &Handler{
-		Logger: a.Logger,
-		a:      a,
+		Logger: cc.GetLogger(),
+		cc:     cc,
 		chExit: make(chan struct{}),
 	}
 }
@@ -36,7 +36,7 @@ func (h *Handler) receive() {
 	h.Info("receive")
 	for !h.exit {
 		err := func() error {
-			r, err := h.a.Redis.BLPop(app.QueueRcvTimeout, app.QueueWorker2).Result()
+			r, err := h.cc.Redis.BLPop(config.QueueRcvTimeout, config.QueueWorker2).Result()
 			if err != nil {
 				return err
 			}
@@ -46,7 +46,7 @@ func (h *Handler) receive() {
 			}
 
 			rev := types.RecReview{}
-			err = h.a.Db.Get(&rev, "select productid, reviewername, emailaddress, approved"+
+			err = h.cc.Db.Get(&rev, "select productid, reviewername, emailaddress, approved"+
 				" from production.productreview"+
 				" where productreviewid=$1 and approved is not null", reviewID)
 			if err != nil {
@@ -66,7 +66,7 @@ func (h *Handler) receive() {
 		}()
 		if err != nil && err != redis.Nil {
 			h.Error("err", err)
-			time.Sleep(app.QueueRcvTimeout)
+			time.Sleep(config.QueueRcvTimeout)
 		}
 	}
 	h.chExit <- struct{}{}

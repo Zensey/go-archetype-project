@@ -69,9 +69,8 @@ func LookupLogBackend(name string) BackendID {
 	return BackendNull
 }
 
-func NewLogger(lev LogLevel, tag string, backend BackendID) (l Logger, err error) {
-	l.tag = tag
-	l.level = lev
+func NewLogger(lev LogLevel, tag string, backend BackendID) (l *Logger, err error) {
+	l = &Logger{tag: tag, level: lev}
 
 	switch backend {
 	case BackendConsole:

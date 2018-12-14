@@ -6,27 +6,27 @@ import (
 	_ "image/jpeg"
 	"net/http"
 
-	"github.com/Zensey/go-archetype-project/pkg/app"
 	"github.com/Zensey/go-archetype-project/pkg/logger"
 	"github.com/Zensey/go-archetype-project/pkg/types"
 	"github.com/Zensey/go-archetype-project/pkg/utils"
 
+	"github.com/Zensey/go-archetype-project/pkg/config"
 	"github.com/jmoiron/sqlx"
 	"html/template"
 )
 
 type Handler struct {
-	logger.Logger
-	a   *app.App
+	*logger.Logger
+	cc  *config.Config
 	mux *http.ServeMux
 
 	t *template.Template
 }
 
-func NewHandler(app *app.App) *Handler {
-	h := &Handler{mux: http.NewServeMux(), Logger: app.Logger, a: app}
-	h.mux.HandleFunc("/api/reviews", utils.Log(utils.BasicAuth(h.reviewHandler, "user", "pass"), app.Logger))
-	h.mux.HandleFunc("/api/report", utils.Log(utils.BasicAuth(h.reportHandler, "admin", "admin"), app.Logger))
+func NewHandler(cc *config.Config) *Handler {
+	h := &Handler{mux: http.NewServeMux(), Logger: cc.GetLogger(), cc: cc}
+	h.mux.HandleFunc("/api/reviews", utils.Log(utils.BasicAuth(h.reviewHandler, "user", "pass"), h.Logger))
+	h.mux.HandleFunc("/api/report", utils.Log(utils.BasicAuth(h.reportHandler, "admin", "admin"), h.Logger))
 
 	h.t = template.Must(template.New("webpage").Parse(tpl))
 	return h
@@ -48,7 +48,7 @@ func (h *Handler) reviewHandler(w http.ResponseWriter, r *http.Request) {
 			return types.NewErrorLogic("invalid request")
 		}
 
-		err := utils.TxMutate(h.a.Db, func(tx *sqlx.Tx) error {
+		err := utils.TxMutate(h.cc.Db, func(tx *sqlx.Tx) error {
 			err := tx.Get(&resp.ReviewID,
 				"insert into production.productreview (productid, reviewername, emailaddress, comments) "+
 					"values ($1,$2,$3,$4) returning productreviewid",
@@ -64,7 +64,7 @@ func (h *Handler) reviewHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return err
 		}
-		_, err = h.a.Redis.LPush(app.QueueWorker1, string(jm)).Result()
+		_, err = h.cc.Redis.LPush(config.QueueWorker1, string(jm)).Result()
 		return err
 	}()
 
@@ -89,7 +89,7 @@ func (h *Handler) reportHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err := func() error {
-		rows, err := h.a.Db.Queryx("select productid, reviewername, emailaddress, approved, reviewdate from production.productreview")
+		rows, err := h.cc.Db.Queryx("select productid, reviewername, emailaddress, approved, reviewdate from production.productreview")
 		if err != nil {
 			return err
 		}
@@ -106,7 +106,7 @@ func (h *Handler) reportHandler(w http.ResponseWriter, r *http.Request) {
 			left join (select count(*), approved from production.productreview group by (approved)) b 
 			on t.approved=b.approved`
 
-		rows, err = h.a.Db.Queryx(q)
+		rows, err = h.cc.Db.Queryx(q)
 		if err != nil {
 			return err
 		}

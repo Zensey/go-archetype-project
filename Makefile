@@ -27,7 +27,7 @@ get-deps:
 	$(ENV) $(GOBIN)/dep ensure -v
 
 test:
-	$(ENV) $(GO) test $(PKG1) -v -run Main
+	GOCACHE=off $(ENV) $(GO) test $(PKG1) -v
 
 lint:
 	$(ENV) golint $(PKGS)  &>> $(report)

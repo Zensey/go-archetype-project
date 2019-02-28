@@ -51,4 +51,4 @@ strip-$(BINARY): $(BINARY)
 
 docker-build:
 	docker build -t go-archetype-project .
-	docker run --rm --publish 8080:8080 -it go-archetype-project
+	#docker run --rm --publish 8080:8080 -it go-archetype-project

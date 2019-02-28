@@ -6,5 +6,4 @@ RUN mkdir -p "$GOPATH/src" "$GOPATH/bin" && chmod -R 777 "$GOPATH"
 WORKDIR $GOPATH
 ADD . /app/
 WORKDIR /app
-RUN make demo
-CMD ["/app/build/_workspace/bin/demo"]
+RUN make test

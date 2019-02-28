@@ -2,6 +2,14 @@
 
 
 [[projects]]
+  digest = "1:2d6b5ccec69f7d2900d0031d3e759927773db1336d05e43fc12a19ba541abaaf"
+  name = "github.com/ancientlore/go-avltree"
+  packages = ["."]
+  pruneopts = ""
+  revision = "c2b799bdb72ccad6dc12fd51a88a250c78a28a1c"
+  version = "v1.0.1"
+
+[[projects]]
   digest = "1:0deddd908b6b4b768cfc272c16ee61e7088a60f7fe2f06c547bd3d8e1f8b8e77"
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
@@ -25,20 +33,12 @@
   revision = "ffdc059bfe9ce6a4e144ba849dbedead332c6053"
   version = "v1.3.0"
 
-[[projects]]
-  branch = "master"
-  digest = "1:1924f3532e4d42e7e9ac365e878aab83922eb7ae9af20bef32d7527e21aa9ad4"
-  name = "github.com/wangjohn/quickselect"
-  packages = ["."]
-  pruneopts = ""
-  revision = "ed8402a42d5f52ff8d3369f179e12243906f298a"
-
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/ancientlore/go-avltree",
     "github.com/stretchr/testify/assert",
-    "github.com/wangjohn/quickselect",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -50,7 +50,7 @@ func Test1Odd(t *testing.T) {
 	for i, v := range testData {
 		w.addDelay(v)
 		m = w.getMedian()
-		assert.Equal(t, testAnswers[i], m, "The two words should be the same.")
+		assert.Equal(t, testAnswers[i], m, "Wrong median value")
 	}
 	assert.Equal(t, 115, m, "Wrong median value")
 }

@@ -15,5 +15,6 @@ func init() {
 
 func main() {
 	l.Infof("Hello, World ! Version: %s", version)
+	println(logger.L_EMERG.String())
 	return
 }

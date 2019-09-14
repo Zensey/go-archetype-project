@@ -1,10 +1,8 @@
 VERSION=$(shell git describe --tags --always)
 LDFLAGS=-tags netgo -ldflags "-X main.version=$(VERSION)"
-SHELL=/bin/bash
 GO=$(shell which go)
-ENV=$(shell pwd)/build/env.sh
-GOBIN=$(shell pwd)/build/_workspace/bin
 PWD=$(shell pwd)
+ENV=GO111MODULE=on
 
 BINARY = demo
 PKG1 = "github.com/Zensey/go-archetype-project/cmd/demo"
@@ -16,21 +14,19 @@ report = lint_report.txt
 all: get-deps $(BINARY)
 
 get-deps:
-	$(ENV) $(GO) get -u github.com/golang/dep/cmd/dep
-	#$(ENV) $(GO) get -u -a golang.org/x/tools/cmd/stringer
-	#$(ENV) $(GO) get -u github.com/golang/lint/golint
-	#$(ENV) $(GO) get -u github.com/kisielk/errcheck
-	#$(ENV) $(GO) get -u honnef.co/go/tools/cmd/staticcheck
-	#$(ENV) $(GO) get -u honnef.co/go/tools/cmd/unused
-	#$(ENV) $(GO) get -u mvdan.cc/interfacer
+	$(ENV) $(GO) get -u -a golang.org/x/tools/cmd/stringer
 
-	$(ENV) $(GOBIN)/dep ensure -v
+	$(ENV) $(GO) get -u github.com/golang/lint/golint
+	$(ENV) $(GO) get -u github.com/kisielk/errcheck
+	$(ENV) $(GO) get -u honnef.co/go/tools/cmd/staticcheck
+	$(ENV) $(GO) get -u honnef.co/go/tools/cmd/unused
+	$(ENV) $(GO) get -u mvdan.cc/interfacer
 
 test:
 	$(ENV) $(GO) test $(PKG1) -v -run Main
 
 lint:
-	$(ENV) golint $(PKGS)  &>> $(report)
+	$(ENV) golint $(PKGS) &>> $(report)
 	$(ENV) go tool vet ../../$(PKG1)/*.go  &>> $(report)
 	$(ENV) go tool vet ../../$(PKG2)/*.go  &>> $(report)
 	$(ENV) errcheck -ignore 'fmt:.*,encoding/binary:.*' -ignoretests $(PKGS)  &>> $(report) ||:
@@ -40,14 +36,14 @@ lint:
 	$(ENV) interfacer $(PKGS)  &>> $(report)
 
 $(BINARY):
-	$(ENV) $(GO) generate "github.com/Zensey/go-archetype-project/pkg/logger"
-	$(ENV) $(GO) install -v $(LDFLAGS) ./cmd/$(BINARY)
+	$(ENV) $(GO) generate ./pkg/logger
+	$(ENV) $(GO) build -v $(LDFLAGS) ./cmd/demo
 
 clean:
-	rm -fr build/_workspace/pkg/ $(GOBIN)/*
+	rm $(BINARY)
 
 strip-$(BINARY): $(BINARY)
-	strip -s $(GOBIN)/$(BINARY)
+	strip -s $(BINARY)
 
 docker-build:
 	docker build -t go-archetype-project .

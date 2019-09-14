@@ -1,10 +1,9 @@
-FROM golang:latest
-ENV GOPATH /go
-ENV PATH $GOPATH/bin:/usr/local/go/bin:$PATH
+FROM golang:1.12.9-alpine3.9
 
-RUN mkdir -p "$GOPATH/src" "$GOPATH/bin" && chmod -R 777 "$GOPATH"
-WORKDIR $GOPATH
+RUN apk add --no-cache \
+	build-base
+
 ADD . /app/
 WORKDIR /app
 RUN make demo
-CMD ["/app/build/_workspace/bin/demo"]
+CMD ["/app/demo"]

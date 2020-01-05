@@ -34,10 +34,10 @@ Possible states (win, lost):
 2. Lost requests must decrease user balance.
 Each request (with the same transaction id) must be processed only once.
 
-The decision regarding database architecture and table structure is made by you.  
+The decision regarding database architecture and table structure is up to you.  
 
-You should know that account balance can't be in a negative value.
-The application must be competitive ability.  
+You should know that account balance can't be a negative value.
+The application must be competitive ability [? handle concurrent requests].  
 
 2. Post-processing
 Every N minutes 10 latest odd records must be canceled and balance should be corrected.

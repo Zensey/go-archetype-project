@@ -30,9 +30,9 @@ func main() {
 	})
 	migrations.Run(db, l)
 
-	h := handler.NewHandler(l)
+	h := handler.NewHandler(l, db)
 	r := chi.NewRouter()
-	r.Post("/update-balance", h.Handle)
+	r.Post("/update-balance", h.UpdateBalance)
 
 	http.ListenAndServe(":8080", r)
 	return

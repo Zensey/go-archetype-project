@@ -48,8 +48,11 @@ clean:
 strip-$(BINARY): $(BINARY)
 	strip -s $(BINARY)
 
-docker-reset:
+docker-db-reset:
 	docker-compose down; docker volume rm go-archetype-project_postgresql go-archetype-project_postgresql_data
+
+docker-db-shell:
+	docker-compose exec db psql -U db
 
 docker-build:
 	docker build -t go-archetype-project .

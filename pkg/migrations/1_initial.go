@@ -12,7 +12,7 @@ func init() {
 
 		_, err := db.Exec(`CREATE TABLE ledger (
 			id varchar(40) PRIMARY KEY, 
-			amount numeric(2),
+			amount numeric(10, 2),
 			state varchar(5),
 			serial serial,
 			is_canceled boolean

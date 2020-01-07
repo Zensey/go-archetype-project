@@ -1,5 +1,10 @@
-To run the service use 
+Run the service with  
 
-* make docker-build
+* `make docker-build`
 
-Request samples can be seen in `update-balance.http`. They could be run from GoLand / Idea IDE. 
+To reset the database run
+
+* `make docker-db-reset`
+
+
+Request samples can be seen in `update-balance.http` and could be run from GoLand / Idea IDE. 

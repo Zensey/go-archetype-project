@@ -12,7 +12,8 @@ func init() {
 
 		_, err := db.Exec(`CREATE TABLE balance (
 			user_id numeric PRIMARY KEY, 
-			amount numeric(10, 2)
+			amount  numeric(10, 2),
+			serial  integer default 0
 		)`)
 		return err
 

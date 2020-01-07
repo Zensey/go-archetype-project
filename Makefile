@@ -56,5 +56,4 @@ docker-db-shell:
 
 docker-build:
 	docker build -t go-archetype-project .
-	docker-compose up --force-recreate
-	#docker run --rm --publish 8080:8080 -it go-archetype-project
+	docker-compose up #--force-recreate

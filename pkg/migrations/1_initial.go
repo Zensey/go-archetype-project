@@ -11,11 +11,13 @@ func init() {
 		fmt.Println("adding ledger ...")
 
 		_, err := db.Exec(`CREATE TABLE ledger (
-			id varchar(40) PRIMARY KEY, 
-			amount numeric(10, 2),
-			state varchar(5),
-			serial serial,
-			is_canceled boolean
+			id          varchar(40) PRIMARY KEY, 
+			amount      numeric(10, 2),
+			state       varchar(5),
+			serial      integer,
+			is_canceled boolean,
+			user_id     numeric,
+			source      varchar(15)
 		)`)
 		return err
 

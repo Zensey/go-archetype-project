@@ -28,3 +28,12 @@ func RunPeriodically(ctx context.Context, wg *sync.WaitGroup, tickerPeriod time.
 		}
 	}
 }
+
+func HasString(slice []string, val string) bool {
+	for _, item := range slice {
+		if item == val {
+			return true
+		}
+	}
+	return false
+}

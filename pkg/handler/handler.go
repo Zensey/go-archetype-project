@@ -35,7 +35,13 @@ func (h *Handler) UpdateBalance(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	if err != nil {
-		h.l.Info(err.Error())
-		w.WriteHeader(http.StatusInternalServerError)
+		h.l.Error(err.Error())
+
+		switch err.(type) {
+		case *domain.LogicError:
+			w.WriteHeader(http.StatusBadRequest)
+		default:
+			w.WriteHeader(http.StatusInternalServerError)
+		}
 	}
 }

@@ -1,7 +1,6 @@
 version: '3'
 services:
 
-  # restart on 'connect: connection refused' ?
   web:
     build: .
     ports:
@@ -11,6 +10,8 @@ services:
     image: "go-archetype-project"
     depends_on:
       - db
+    environment:
+      - TYPES=game,server,payment
 
 
   db:

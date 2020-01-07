@@ -4,10 +4,13 @@ import (
 	"context"
 	"net"
 	"net/http"
+	"os"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/Zensey/go-archetype-project/pkg/data"
+	"github.com/Zensey/go-archetype-project/pkg/domain"
 	"github.com/Zensey/go-archetype-project/pkg/handler"
 	"github.com/Zensey/go-archetype-project/pkg/logger"
 	"github.com/Zensey/go-archetype-project/pkg/migrations"
@@ -25,18 +28,18 @@ func init() {
 	l, _ = logger.NewLogger(logger.LogLevelInfo, "demo", logger.BackendConsole)
 }
 
-//const tickerPeriod = 10 * time.Minute
-const tickerPeriod = 10 * time.Second
+const tickerPeriod = 10 * time.Minute
 
 func main() {
 	l.Infof("Starting up! Version: %s", version)
+	domain.SetBalanceUpdateSources(strings.Split(os.Getenv("TYPES"), ","))
+
 	db := pg.Connect(&pg.Options{
 		Addr:     "db:5432",
 		Database: "db",
 		User:     "db",
 		Password: "xxx",
 	})
-
 	// wait while db is starting
 	for {
 		_, err := db.Exec("SELECT 1")

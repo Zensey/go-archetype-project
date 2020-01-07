@@ -1,6 +1,17 @@
 package domain
 
-import "errors"
+import (
+	"sort"
+
+	"github.com/Zensey/go-archetype-project/pkg/utils"
+)
+
+var balanceUpdateSources []string
+
+func SetBalanceUpdateSources(l []string) {
+	sort.Strings(l)
+	balanceUpdateSources = l
+}
 
 type BalanceUpdate struct {
 	TransactionID string  `json:"transactionId" pg:"id,pk"`
@@ -11,13 +22,8 @@ type BalanceUpdate struct {
 }
 
 func (b *BalanceUpdate) Validate() error {
-	switch b.Source {
-	case "game":
-	case "server":
-	case "payment":
-
-	default:
-		return errors.New("unknown source")
+	if !utils.HasString(balanceUpdateSources, b.Source) {
+		return NewLogicError("unknown source")
 	}
 
 	switch b.State {
@@ -30,7 +36,7 @@ func (b *BalanceUpdate) Validate() error {
 			b.Amount = -b.Amount
 		}
 	default:
-		return errors.New("unknown state")
+		return NewLogicError("unknown state")
 	}
 
 	return nil

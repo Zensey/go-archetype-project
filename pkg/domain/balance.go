@@ -19,6 +19,7 @@ type BalanceUpdate struct {
 	State         string  `json:"state"`
 	IsCanceled    bool    `json:-`
 	Source        string  `json:-`
+	UserID        int     `json:-`
 }
 
 func (b *BalanceUpdate) Validate() error {

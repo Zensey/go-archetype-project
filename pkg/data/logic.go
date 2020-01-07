@@ -6,8 +6,6 @@ import (
 	"github.com/go-pg/pg/v9"
 )
 
-const userID = 0
-
 type DAO struct {
 	l  logger.Logger
 	db *pg.DB
@@ -25,7 +23,7 @@ func (h *DAO) UpdateBalanceInTx(r domain.BalanceUpdate) error {
 	defer tx.Rollback()
 
 	oldBalance := float64(0)
-	_, err = tx.QueryOne(pg.Scan(&oldBalance), `SELECT amount FROM balance WHERE user_id=? FOR UPDATE`, userID)
+	_, err = tx.QueryOne(pg.Scan(&oldBalance), `SELECT amount FROM balance WHERE user_id=? FOR UPDATE`, r.UserID)
 	if err != nil {
 		return err
 	}
@@ -37,12 +35,12 @@ func (h *DAO) UpdateBalanceInTx(r domain.BalanceUpdate) error {
 	}
 
 	serial := int64(0)
-	_, err = tx.QueryOne(pg.Scan(&serial), `UPDATE balance SET amount=amount+?, serial=serial+1 WHERE user_id=? RETURNING serial`, balanceDelta, userID)
+	_, err = tx.QueryOne(pg.Scan(&serial), `UPDATE balance SET amount=amount+?, serial=serial+1 WHERE user_id=? RETURNING serial`, balanceDelta, r.UserID)
 	if err != nil {
 		return err
 	}
 
-	_, err = tx.Exec(`INSERT into ledger (id, amount, state, is_canceled, source, user_id, serial) VALUES (?,?,?,?,?,?,?)`, r.TransactionID, r.Amount, r.State, r.IsCanceled, r.Source, userID, serial)
+	_, err = tx.Exec(`INSERT into ledger (id, amount, state, is_canceled, source, user_id, serial) VALUES (?,?,?,?,?,?,?)`, r.TransactionID, r.Amount, r.State, r.IsCanceled, r.Source, r.UserID, serial)
 	if err != nil {
 		return err
 	}
@@ -57,7 +55,7 @@ func (h *DAO) CancelLastNOddLedgerRecordsInTx(n int) error {
 	defer tx.Rollback()
 
 	oldBalance := float64(0)
-	_, err = tx.QueryOne(pg.Scan(&oldBalance), `SELECT amount FROM balance WHERE user_id=? FOR UPDATE`, userID)
+	_, err = tx.QueryOne(pg.Scan(&oldBalance), `SELECT amount FROM balance WHERE user_id=? FOR UPDATE`, r.UserID)
 	if err != nil {
 		return err
 	}
@@ -83,7 +81,7 @@ func (h *DAO) CancelLastNOddLedgerRecordsInTx(n int) error {
 	}
 
 	if balanceDelta != 0 {
-		_, err = tx.Exec(`UPDATE balance SET amount=amount+? WHERE user_id=?`, -balanceDelta, userID)
+		_, err = tx.Exec(`UPDATE balance SET amount=amount+? WHERE user_id=?`, -balanceDelta, r.UserID)
 		if err != nil {
 			return err
 		}

@@ -4,7 +4,6 @@ func NewLogicError(text string) error {
 	return &LogicError{text}
 }
 
-// errorString is a trivial implementation of error.
 type LogicError struct {
 	s string
 }

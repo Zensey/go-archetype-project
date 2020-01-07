@@ -1,6 +1,5 @@
 version: '3'
 services:
-
   web:
     build: .
     ports:
@@ -11,8 +10,13 @@ services:
     depends_on:
       - db
     environment:
-      - TYPES=game,server,payment
+      - DB_ADDR=db:5432
+      - DB_NAME=db
+      - DB_USER=db
+      - DB_PASSWORD=xxx
 
+      - TYPES=game,server,payment
+      - N=1 # tickerPeriod [minute]
 
   db:
     image: postgres

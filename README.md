@@ -6,5 +6,12 @@ To reset the database run
 
 * `make docker-db-reset`
 
+To inspect the database (psql) run
 
-Request samples can be seen in `update-balance.http` and could be run from GoLand / Idea IDE. 
+* `make docker-db-shell`
+
+
+Request samples can be seen in `update-balance.http` and can be run from GoLand / Idea IDE.
+
+
+ 

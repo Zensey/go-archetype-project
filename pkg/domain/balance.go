@@ -8,7 +8,7 @@ import (
 
 var balanceUpdateSources []string
 
-func SetBalanceUpdateSources(l []string) {
+func SetBalanceUpdateSourcesEnum(l []string) {
 	sort.Strings(l)
 	balanceUpdateSources = l
 }

@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -19,27 +20,25 @@ import (
 	"github.com/go-pg/pg/v9"
 )
 
-var (
-	l       logger.Logger
-	version string
-)
-
-func init() {
-	l, _ = logger.NewLogger(logger.LogLevelInfo, "demo", logger.BackendConsole)
-}
-
-const tickerPeriod = 10 * time.Minute
+var version string
 
 func main() {
+	l, _ := logger.NewLogger(logger.LogLevelDebug, "demo", logger.BackendConsole)
 	l.Infof("Starting up! Version: %s", version)
-	domain.SetBalanceUpdateSources(strings.Split(os.Getenv("TYPES"), ","))
+
+	domain.SetBalanceUpdateSourcesEnum(strings.Split(os.Getenv("TYPES"), ","))
+	n, _ := strconv.Atoi(os.Getenv("N"))
+	if n <= 0 {
+		n = 5
+	}
 
 	db := pg.Connect(&pg.Options{
-		Addr:     "db:5432",
-		Database: "db",
-		User:     "db",
-		Password: "xxx",
+		Addr:     os.Getenv("DB_ADDR"),
+		Database: os.Getenv("DB_NAME"),
+		User:     os.Getenv("DB_USER"),
+		Password: os.Getenv("DB_PASSWORD"),
 	})
+
 	// wait while db is starting
 	for {
 		_, err := db.Exec("SELECT 1")
@@ -54,8 +53,10 @@ func main() {
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 	ctx, cancel := context.WithCancel(context.Background())
-	go utils.RunPeriodically(ctx, wg, tickerPeriod, func() {
-		err := dao.CancelLastNOddLedgerRecordsInTx(10)
+	jobPeriod := time.Duration(n) * time.Minute
+	go utils.RunPeriodically(ctx, wg, jobPeriod, func() {
+		userID := 0
+		err := dao.CancelLastNOddLedgerRecordsInTx(userID)
 		if err != nil {
 			l.Error("Callee error>", err)
 		}
@@ -65,6 +66,7 @@ func main() {
 	r := chi.NewRouter()
 	r.Post("/update-balance", h.UpdateBalance)
 
+	// start http
 	listener, err := net.Listen("tcp", ":8080")
 	if err != nil {
 		return
@@ -74,7 +76,7 @@ func main() {
 	}
 	go srv.Serve(listener)
 
-	// wait for process termination
+	// process shutdown
 	utils.WaitSigTerm()
 	srv.Shutdown(context.Background())
 	cancel()

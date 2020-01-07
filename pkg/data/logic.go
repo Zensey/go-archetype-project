@@ -47,7 +47,7 @@ func (h *DAO) UpdateBalanceInTx(r domain.BalanceUpdate) error {
 	return tx.Commit()
 }
 
-func (h *DAO) CancelLastNOddLedgerRecordsInTx(n int) error {
+func (h *DAO) CancelLastNOddLedgerRecordsInTx(UserID int) error {
 	tx, err := h.db.Begin()
 	if err != nil {
 		return err
@@ -55,15 +55,16 @@ func (h *DAO) CancelLastNOddLedgerRecordsInTx(n int) error {
 	defer tx.Rollback()
 
 	oldBalance := float64(0)
-	_, err = tx.QueryOne(pg.Scan(&oldBalance), `SELECT amount FROM balance WHERE user_id=? FOR UPDATE`, r.UserID)
+	_, err = tx.QueryOne(pg.Scan(&oldBalance), `SELECT amount FROM balance WHERE user_id=? FOR UPDATE`, UserID)
 	if err != nil {
 		return err
 	}
 
 	var recs []domain.BalanceUpdate
-	_, err = tx.Query(&recs, `
-		SELECT id, amount FROM (SELECT * FROM ledger WHERE user_id=? order by serial desc limit ?) a
-		 WHERE serial%2=1 and is_canceled=false`, userID, n*2)
+	q := `SELECT id, amount FROM (
+			SELECT * FROM ledger WHERE user_id=? and serial%2=1 ORDER BY serial DESC LIMIT 10) a 
+		  WHERE a.is_canceled=false;`
+	_, err = tx.Query(&recs, q, UserID)
 	if err != nil {
 		return err
 	}
@@ -81,7 +82,7 @@ func (h *DAO) CancelLastNOddLedgerRecordsInTx(n int) error {
 	}
 
 	if balanceDelta != 0 {
-		_, err = tx.Exec(`UPDATE balance SET amount=amount+? WHERE user_id=?`, -balanceDelta, r.UserID)
+		_, err = tx.Exec(`UPDATE balance SET amount=amount+? WHERE user_id=?`, -balanceDelta, UserID)
 		if err != nil {
 			return err
 		}

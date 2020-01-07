@@ -3,8 +3,8 @@ package domain
 import "errors"
 
 type BalanceUpdate struct {
-	TransactionID string  `json:"transactionId"`
-	Amount        float64 `json:"amount,string"`
+	TransactionID string  `json:"transactionId" pg:"id,pk"`
+	Amount        float64 `json:"amount,string" pg:"amount"`
 	State         string  `json:"state"`
 	IsCanceled    bool    `json:-`
 	Source        string  `json:-`

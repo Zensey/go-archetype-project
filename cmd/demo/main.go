@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"net/http"
 	"sync"
@@ -26,18 +25,19 @@ func init() {
 	l, _ = logger.NewLogger(logger.LogLevelInfo, "demo", logger.BackendConsole)
 }
 
+//const tickerPeriod = 10 * time.Minute
 const tickerPeriod = 10 * time.Second
 
 func main() {
-	//runtime.GOMAXPROCS(runtime.NumCPU())
 	l.Infof("Starting up! Version: %s", version)
-
 	db := pg.Connect(&pg.Options{
 		Addr:     "db:5432",
 		Database: "db",
 		User:     "db",
 		Password: "xxx",
 	})
+
+	// wait while db is starting
 	for {
 		_, err := db.Exec("SELECT 1")
 		if err == nil {
@@ -52,9 +52,9 @@ func main() {
 	wg.Add(1)
 	ctx, cancel := context.WithCancel(context.Background())
 	go utils.RunPeriodically(ctx, wg, tickerPeriod, func() {
-		err := dao.CancelLastNOddRecords(10)
+		err := dao.CancelLastNOddLedgerRecordsInTx(10)
 		if err != nil {
-			fmt.Println("callee >", err)
+			l.Error("Callee error>", err)
 		}
 	})
 
@@ -71,6 +71,7 @@ func main() {
 	}
 	go srv.Serve(listener)
 
+	// wait for process termination
 	utils.WaitSigTerm()
 	srv.Shutdown(context.Background())
 	cancel()

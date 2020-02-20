@@ -3,6 +3,7 @@ package data
 import (
 	"github.com/Zensey/go-archetype-project/pkg/domain"
 	"github.com/Zensey/go-archetype-project/pkg/logger"
+	"github.com/Zensey/go-archetype-project/pkg/utils"
 	"github.com/go-pg/pg/v9"
 )
 
@@ -16,14 +17,18 @@ func NewDAO(l logger.Logger, db *pg.DB) *DAO {
 }
 
 func (h *DAO) UpdateBalanceInTx(r domain.BalanceUpdate) error {
-	tx, err := h.db.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
+	closure := func(tx *pg.Tx) error { return h.updateBalance(tx, r) }
+	return utils.InTx(h.db, closure)
+}
 
+func (h *DAO) CancelLastNOddLedgerRecordsInTx(UserID int) error {
+	closure := func(tx *pg.Tx) error { return h.cancelLastNOddLedgerRecords(tx, UserID) }
+	return utils.InTx(h.db, closure)
+}
+
+func (h *DAO) updateBalance(tx *pg.Tx, r domain.BalanceUpdate) error {
 	oldBalance := float64(0)
-	_, err = tx.QueryOne(pg.Scan(&oldBalance), `SELECT amount FROM balance WHERE user_id=? FOR UPDATE`, r.UserID)
+	_, err := tx.QueryOne(pg.Scan(&oldBalance), `SELECT amount FROM balance WHERE user_id=? FOR UPDATE`, r.UserID)
 	if err != nil {
 		return err
 	}
@@ -44,18 +49,12 @@ func (h *DAO) UpdateBalanceInTx(r domain.BalanceUpdate) error {
 	if err != nil {
 		return err
 	}
-	return tx.Commit()
+	return nil
 }
 
-func (h *DAO) CancelLastNOddLedgerRecordsInTx(UserID int) error {
-	tx, err := h.db.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-
+func (h *DAO) cancelLastNOddLedgerRecords(tx *pg.Tx, UserID int) error {
 	oldBalance := float64(0)
-	_, err = tx.QueryOne(pg.Scan(&oldBalance), `SELECT amount FROM balance WHERE user_id=? FOR UPDATE`, UserID)
+	_, err := tx.QueryOne(pg.Scan(&oldBalance), `SELECT amount FROM balance WHERE user_id=? FOR UPDATE`, UserID)
 	if err != nil {
 		return err
 	}
@@ -88,6 +87,5 @@ func (h *DAO) CancelLastNOddLedgerRecordsInTx(UserID int) error {
 		}
 		h.l.Debug("CancelLastNOddLedgerRecordsInTx > balance has been corrected: ", -balanceDelta)
 	}
-
-	return tx.Commit()
+	return nil
 }

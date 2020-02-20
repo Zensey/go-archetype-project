@@ -31,7 +31,6 @@ func (h *Handler) UpdateBalance(w http.ResponseWriter, r *http.Request) {
 			return err
 		}
 		return h.u.UpdateBalanceInTx(req)
-
 	}()
 
 	if err != nil {

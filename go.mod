@@ -12,6 +12,7 @@ require (
 	github.com/kisielk/errcheck v1.2.0 // indirect
 	github.com/kr/pretty v0.2.0 // indirect
 	github.com/kr/pty v1.1.8 // indirect
+	github.com/oklog/run v1.1.0
 	github.com/onsi/ginkgo v1.11.0 // indirect
 	github.com/onsi/gomega v1.8.1 // indirect
 	github.com/rogpeppe/go-internal v1.5.1 // indirect

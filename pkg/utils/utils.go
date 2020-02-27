@@ -4,25 +4,35 @@ import (
 	"context"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 	"time"
 
 	"github.com/go-pg/pg/v9"
 )
 
-func WaitSigTerm() {
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
-	<-stop
+type SigTermHandler struct {
+	stop chan os.Signal
 }
 
-func RunPeriodically(ctx context.Context, wg *sync.WaitGroup, tickerPeriod time.Duration, callee func()) {
+func NewSigTermHandler() *SigTermHandler {
+	return &SigTermHandler{stop: make(chan os.Signal)}
+}
+
+func (s *SigTermHandler) Wait() error {
+	signal.Notify(s.stop, os.Interrupt, syscall.SIGTERM)
+	<-s.stop
+	return nil
+}
+func (s *SigTermHandler) Stop() {
+	close(s.stop)
+}
+
+func RunPeriodically(ctx context.Context, jobDone chan struct{}, tickerPeriod time.Duration, callee func()) {
 	ticker := time.NewTicker(tickerPeriod)
 	for {
 		select {
 		case <-ctx.Done():
-			wg.Done()
+			close(jobDone)
 			return
 
 		case <-ticker.C:

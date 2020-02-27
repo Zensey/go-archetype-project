@@ -7,7 +7,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/Zensey/go-archetype-project/pkg/data"
@@ -18,6 +17,7 @@ import (
 	"github.com/Zensey/go-archetype-project/pkg/utils"
 	"github.com/go-chi/chi"
 	"github.com/go-pg/pg/v9"
+	"github.com/oklog/run"
 )
 
 var version string
@@ -50,17 +50,15 @@ func main() {
 	migrations.Run(db, l)
 
 	dao := data.NewDAO(l, db)
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
-	ctx, cancel := context.WithCancel(context.Background())
+
 	jobPeriod := time.Duration(n) * time.Minute
-	go utils.RunPeriodically(ctx, wg, jobPeriod, func() {
+	job := func() {
 		userID := 0
 		err := dao.CancelLastNOddLedgerRecordsInTx(userID)
 		if err != nil {
 			l.Error("Callee error>", err)
 		}
-	})
+	}
 
 	h := handler.NewHandler(l, dao)
 	r := chi.NewRouter()
@@ -74,13 +72,19 @@ func main() {
 	srv := http.Server{
 		Handler: r,
 	}
-	go srv.Serve(listener)
 
-	// process shutdown
-	utils.WaitSigTerm()
-	srv.Shutdown(context.Background())
-	cancel()
-	wg.Wait()
+	// Shutdown gracefully
+	{
+		var g run.Group
+		s := utils.NewSigTermHandler()
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 
+		jobStop := make(chan struct{})
+		g.Add(func() error { utils.RunPeriodically(ctx, jobStop, jobPeriod, job); return nil }, func(err error) { cancel(); <-jobStop })
+		g.Add(func() error { return s.Wait() }, func(err error) { s.Stop() })
+		g.Add(func() error { return srv.Serve(listener) }, func(err error) { srv.Shutdown(ctx) })
+		g.Run()
+	}
 	return
 }

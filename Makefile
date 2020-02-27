@@ -41,5 +41,5 @@ docker-db-shell:
 	docker-compose exec db psql -U db
 
 docker-build:
-	#docker build -t go-archetype-project .
+	docker build -t go-archetype-project .
 	docker-compose up

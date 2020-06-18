@@ -14,13 +14,7 @@ report = lint_report.txt
 all: get-deps $(BINARY)
 
 get-deps:
-	$(ENV) $(GO) get -u -a golang.org/x/tools/cmd/stringer
-
-	$(ENV) $(GO) get -u github.com/golang/lint/golint
-	$(ENV) $(GO) get -u github.com/kisielk/errcheck
-	$(ENV) $(GO) get -u honnef.co/go/tools/cmd/staticcheck
-	$(ENV) $(GO) get -u honnef.co/go/tools/cmd/unused
-	$(ENV) $(GO) get -u mvdan.cc/interfacer
+	$(ENV) $(GO) install
 
 test:
 	$(ENV) $(GO) test $(PKG1) -v -run Main
@@ -36,7 +30,6 @@ lint:
 	$(ENV) interfacer $(PKGS)  &>> $(report)
 
 $(BINARY):
-	$(ENV) $(GO) generate ./pkg/logger
 	$(ENV) $(GO) build -v $(LDFLAGS) ./cmd/demo
 
 clean:

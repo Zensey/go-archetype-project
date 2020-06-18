@@ -1,16 +1,41 @@
 package main
 
+import "fmt"
+
+func abs(x int) int {
+	if x < 0 {
+		return -x
+	}
+	return x
+}
+
+func findFirstPositive(a []int) (i int, v int) {
+	for i := 0; i < len(a); i++ {
+		if a[i] > 0 {
+			return i, a[i]
+		}
+	}
+	return -1, 0
+}
+
 func main() {
-	l := List{}
-	l.push(5)
-	l.push(4)
-	l.push(3)
-	l.push(2)
-	l.push(1)
+	a := []int{2, 3, -7, 6, 8, 1, -10, 15}
+	fmt.Println(a)
 
-	l.head.print()
-	new := l.head.reverseN(2)
-	new.print()
+	_, firstPos := findFirstPositive(a)
+	for i, _ := range a {
+		if a[i] <= 0 {
+			a[i] = firstPos
+		}
+	}
+	for i, _ := range a {
+		j := abs(a[i]) - 1
+		if j < len(a) && a[j] > 0 {
+			a[j] = -a[j]
+		}
+	}
 
+	firstPosI, _ := findFirstPositive(a)
+	fmt.Println(a, firstPosI+1)
 	return
 }

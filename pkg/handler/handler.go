@@ -13,25 +13,31 @@ import (
 	"github.com/Zensey/slog"
 )
 
+const apiKeyHeader = "api_key"
+
 type Handler struct {
-	l slog.Logger
-	s *svc.CustomerService
+	l      slog.Logger
+	s      *svc.CustomerService
+	apiKey string
 }
 
-func NewHandler(l slog.Logger, s *svc.CustomerService) *Handler {
-	return &Handler{l, s}
+func NewHandler(l slog.Logger, s *svc.CustomerService, apiKey string) *Handler {
+	return &Handler{l, s, apiKey}
 }
 
 func setCORS(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, PUT, PATCH, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, api_key, Authorization")
+	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, api_key")
 }
 
 func (h *Handler) SaveCustomer(w http.ResponseWriter, r *http.Request) {
 	setCORS(w)
-	if r.Method != http.MethodPost {
+	if r.Method == http.MethodOptions {
 		return
+	}
+	if r.Header.Get(apiKeyHeader) != h.apiKey {
+		w.WriteHeader(401)
 	}
 
 	err := func() error {
@@ -57,6 +63,13 @@ func (h *Handler) SaveCustomer(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) GetCustomers(w http.ResponseWriter, r *http.Request) {
 	setCORS(w)
+	if r.Method == http.MethodOptions {
+		return
+	}
+	if r.Header.Get(apiKeyHeader) != h.apiKey {
+		w.WriteHeader(401)
+	}
+
 	err := func() error {
 		c, err := h.s.GetCustomers()
 		if err != nil {

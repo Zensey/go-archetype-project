@@ -60,6 +60,7 @@ func (s *CustomerService) refreshClient() {
 
 func (s *CustomerService) WaitSyncCustomersFinish() {
 	s.wg.Wait()
+	s.l.Info("SyncCustomers > Stop")
 }
 
 func (s *CustomerService) GetDB() *pg.DB {
@@ -67,6 +68,8 @@ func (s *CustomerService) GetDB() *pg.DB {
 }
 
 func (s *CustomerService) SyncCustomersPeriodic(ctx context.Context) error {
+	s.l.Info("SyncCustomers > Start")
+
 	s.wg.Add(1)
 	defer s.wg.Done()
 
@@ -90,7 +93,6 @@ func (s *CustomerService) SyncCustomersPeriodic(ctx context.Context) error {
 }
 
 func (s *CustomerService) SyncCustomers(ctx context.Context) error {
-	s.l.Info("SyncCustomers >")
 	s.refreshClient()
 
 	dirtyRecs := make([]domain.Customer, 0)
@@ -117,19 +119,15 @@ func (s *CustomerService) SyncCustomers(ctx context.Context) error {
 	defer cancel()
 
 	// upload dirty recs
-	s.l.Info("upload dirty recs>")
 	for _, c := range dirtyRecs {
 		m := mkStringMapFromStruct(&c, getCustomerFieldsBlacklist(&c))
 		_, err := customerCli.SaveCustomer(ctx, m)
 		if err != nil {
 			return err
 		}
-		//s.l.Info("rep", r)
-		//r.CustomerID
 	}
 
 	// grab all customers
-	s.l.Info("Download all customers")
 	customers, err := customerCli.GetCustomers(ctx, map[string]string{})
 	if err != nil {
 		return err
@@ -138,14 +136,11 @@ func (s *CustomerService) SyncCustomers(ctx context.Context) error {
 	var ff = func(tx *pg.Tx) error {
 		for _, c := range customers {
 			cu := domain.Customer{}
-			//s.l.Infof("SyncCustomers >> %+v \n", c)
 
 			err := deepcopier.Copy(c).To(&cu)
 			if err != nil {
 				return err
 			}
-
-			//s.l.Info("SyncCustomers >>", cu, cu.FirstName, cu.LastName, cu.FullName)
 			err = s.SaveCustomer(&cu, tx)
 			if err != nil {
 				return err
@@ -163,8 +158,8 @@ func (s *CustomerService) SaveCustomerInTx(cu *domain.Customer) error {
 }
 
 func (s *CustomerService) SaveCustomer(cu *domain.Customer, tx *pg.Tx) error {
-	s.l.Info("SaveCustomer >", cu.ID, cu.FirstName)
-	//s.l.Infof("SaveCustomer > %+v\n", cu)
+	//s.l.Info("SaveCustomer >", cu.ID, cu.FirstName)
+	s.l.Tracef("SaveCustomer > %+v\n", cu)
 
 	customerCli := s.apiClient.CustomerManager
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)

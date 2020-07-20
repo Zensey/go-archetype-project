@@ -27,11 +27,6 @@ func createSchema(db *pg.DB) error {
 		(*domain.Customer)(nil),
 	}
 	for _, model := range models {
-		//db.Model(model).DropTable(&orm.DropTableOptions{
-		//	IfExists: false,
-		//	Cascade:  false,
-		//})
-
 		err := db.Model(model).CreateTable(&orm.CreateTableOptions{
 			IfNotExists: true,
 		})
@@ -39,13 +34,12 @@ func createSchema(db *pg.DB) error {
 			return err
 		}
 	}
-
 	return nil
 }
 
 func main() {
 	l := slog.ConsoleLogger()
-	l.SetLevel(slog.LevelTrace)
+	l.SetLevel(slog.LevelInfo)
 	l.Infof("Starting up! Version: %s", version)
 
 	db := pg.Connect(&pg.Options{
@@ -66,7 +60,8 @@ func main() {
 	}
 	err := createSchema(db)
 	if err != nil {
-		panic(err)
+		l.Error("createSchema err:", err)
+		return
 	}
 
 	cr := &cfg.ErplyCredentials{
@@ -76,11 +71,13 @@ func main() {
 	}
 	svc := svc.NewCustomerService(db, cr, l)
 
-	h := handler.NewHandler(l, svc)
+	h := handler.NewHandler(l, svc, os.Getenv("API_KEY"))
 	r := chi.NewRouter()
-	r.Options("/save-customer", h.SaveCustomer)
 	r.Post("/save-customer", h.SaveCustomer)
 	r.Get("/customers", h.GetCustomers)
+	// workaround for swagger - CORS issue
+	r.Options("/save-customer", h.SaveCustomer)
+	r.Options("/customers", h.GetCustomers)
 
 	workDir, _ := os.Getwd()
 	filesDir := http.Dir(filepath.Join(workDir, "."))
@@ -89,6 +86,7 @@ func main() {
 	// start http
 	listener, err := net.Listen("tcp", ":8080")
 	if err != nil {
+		l.Error("net.Listen err:", err)
 		return
 	}
 	srv := http.Server{
@@ -102,11 +100,13 @@ func main() {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		//g.Add(func() error { return utils.RunPeriodically(ctx, svc.time.Minute, svc.SyncCustomers) }, func(err error) { cancel(); svc.WaitSyncCustomersFinish() })
 		g.Add(func() error { return svc.SyncCustomersPeriodic(ctx) }, func(err error) { cancel(); svc.WaitSyncCustomersFinish() })
 		g.Add(func() error { return s.Wait() }, func(err error) { s.Stop() })
 		g.Add(func() error { return srv.Serve(listener) }, func(err error) { srv.Shutdown(ctx) })
-		g.Run()
+		err := g.Run()
+		if err != nil {
+			l.Error("run.Group error:", err)
+		}
 	}
 	l.Error("Exit>")
 }

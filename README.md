@@ -6,6 +6,7 @@
    
    Swagger file: http://localhost:8080/files/swagger.yaml
    
+   api_key (token): `key::1234`
 
 ####To inspect the database (psql) run
 

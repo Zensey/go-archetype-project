@@ -17,7 +17,7 @@ services:
       - ERPLY_USERNAME=jnashicq@gmail.com
       - ERPLY_PASSWORD=demo1234
       - ERPLY_CLIENTCODE=113746
-
+      - API_KEY=key::1234
 
   db:
     image: postgres

@@ -16,17 +16,13 @@ basePath: "/"
 
 paths:
   /customers:
+    parameters:
+      - $ref: "#/parameters/Token"
     get:
       consumes:
         - "application/json"
       produces:
         - "application/json"
-#      parameters:
-#        - in: body
-#          name: payload
-#          required: true
-#          schema:
-#            $ref: "#/definitions/VerifyUserResp"
       responses:
         "200":
           description: OK
@@ -36,6 +32,8 @@ paths:
         - customers
 
   /save-customer:
+    parameters:
+      - $ref: "#/parameters/Token"
     post:
       parameters:
         - in: body
@@ -58,41 +56,6 @@ definitions:
       $ref: '#/definitions/Customer'
 
   Customer:
-#    required:
-#      - "customerID"
-#      - "payerID"
-#      - "type_id"
-#      - "fullName"
-#      - "companyName"
-#      - "firstName"
-#      - "lastName"
-#      - "groupID"
-#      - "EDI"
-#      - "isPOSDefaultCustomer"
-#      - "countryID"
-#      - "phone"
-#      - "eInvoiceEmail"
-#      - "email"
-#      - "fax"
-#      - "code"
-#      - "referenceNumber"
-#      - "vatNumber"
-#      - "bankName"
-#      - "bankAccountNumber"
-#      - "bankIBAN"
-#      - "bankSWIFT"
-#      - "paymentDays"
-#      - "notes"
-#      - "lastModified"
-#      - "customerType"
-#      - "address"
-#      - "street"
-#      - "address2"
-#      - "city"
-#      - "postalCode"
-#      - "country"
-#      - "state"
-
     type: "object"
     properties:
       customerID:
@@ -241,12 +204,11 @@ definitions:
       gender:
         type: "string"
 
-
-#parameters:
-#  AuthorizationBearer:
-#    description: Authorization Bearer
-#    name: Authorization
-#    type: string
-#    in: header
-#    required: false
-#    x-nullable: false
+parameters:
+  Token:
+    description: API key (token)
+    name: api_key
+    type: string
+    in: header
+    required: false
+    x-nullable: false

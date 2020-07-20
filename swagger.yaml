@@ -1,0 +1,252 @@
+swagger: "2.0"
+
+info:
+  description: Erply Customer Client Demo
+  title: Erply Customer Client
+  version: 1.0.0
+
+produces:
+  - application/json
+consumes:
+  - application/json
+schemes:
+  - http
+host: "localhost:8080"
+basePath: "/"
+
+paths:
+  /customers:
+    get:
+      consumes:
+        - "application/json"
+      produces:
+        - "application/json"
+#      parameters:
+#        - in: body
+#          name: payload
+#          required: true
+#          schema:
+#            $ref: "#/definitions/VerifyUserResp"
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: "#/definitions/GetCustomersResp"
+      tags:
+        - customers
+
+  /save-customer:
+    post:
+      parameters:
+        - in: body
+          name: payload
+          required: true
+          schema:
+            $ref: "#/definitions/Customer"
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: "#/definitions/Customer"
+      tags:
+        - customers
+
+definitions:
+  GetCustomersResp:
+    type: "array"
+    items:
+      $ref: '#/definitions/Customer'
+
+  Customer:
+#    required:
+#      - "customerID"
+#      - "payerID"
+#      - "type_id"
+#      - "fullName"
+#      - "companyName"
+#      - "firstName"
+#      - "lastName"
+#      - "groupID"
+#      - "EDI"
+#      - "isPOSDefaultCustomer"
+#      - "countryID"
+#      - "phone"
+#      - "eInvoiceEmail"
+#      - "email"
+#      - "fax"
+#      - "code"
+#      - "referenceNumber"
+#      - "vatNumber"
+#      - "bankName"
+#      - "bankAccountNumber"
+#      - "bankIBAN"
+#      - "bankSWIFT"
+#      - "paymentDays"
+#      - "notes"
+#      - "lastModified"
+#      - "customerType"
+#      - "address"
+#      - "street"
+#      - "address2"
+#      - "city"
+#      - "postalCode"
+#      - "country"
+#      - "state"
+
+    type: "object"
+    properties:
+      customerID:
+        type: "integer"
+      fullName:
+        type: "string"
+        example: "Abersmith, Jessica"
+      companyName:
+        type: "string"
+        example: ""
+      companyTypeID:
+        type: "integer"
+      firstName:
+        type: "string"
+        example: "Jessica"
+      lastName:
+        type: "string"
+        example: "Abersmith"
+      personTitleID:
+        type: "integer"
+      eInvoiceEmail:
+        type: "string"
+      emailEnabled:
+        type: "integer"
+      eInvoiceEnabled:
+        type: "integer"
+      mailEnabled:
+        type: "integer"
+      operatorIdentifier:
+        type: "string"
+      EDI:
+        type: "string"
+      groupID:
+        type: "integer"
+        example: 14
+      countryID:
+        type: "string"
+      payerID:
+        type: "integer"
+      phone:
+        type: "string"
+        example: ""
+      mobile:
+        type: "string"
+        example: ""
+      email:
+        type: "string"
+        example: "a@a.a"
+      fax:
+        type: "string"
+        example: ""
+      code:
+        type: "string"
+        example: ""
+      birthday:
+        type: "string"
+        example: ""
+      integrationCode:
+        type: "string"
+      flagStatus:
+        type: "integer"
+      colorStatus:
+        type: "string"
+      credit:
+        type: "integer"
+      salesBlocked:
+        type: "integer"
+      referenceNumber:
+        type: "string"
+      customerCardNumber:
+        type: "string"
+      factoringContractNumber:
+        type: "string"
+      groupName:
+        type: "string"
+      customerType:
+        type: "string"
+        example: "PERSON"
+      address:
+        type: "string"
+      street:
+        type: "string"
+      address2:
+        type: "string"
+      city:
+        type: "string"
+      postalCode:
+        type: "string"
+      country:
+        type: "string"
+      state:
+        type: "string"
+      addressTypeID:
+        type: "integer"
+      addressTypeName:
+        type: "string"
+      isPOSDefaultCustomer:
+        type: "integer"
+      euCustomerType:
+        type: "string"
+      lastModifierUsername:
+        type: "string"
+      lastModifierEmployeeID:
+        type: "integer"
+      attributes:
+        type: "array"
+        items:
+          type: "object"
+          properties:
+            attributeName:
+              type: "string"
+            attributeType:
+              type: "string"
+            attributeValue:
+              type: "string"
+      taxExempt:
+        type: "integer"
+      paysViaFactoring:
+        type: "integer"
+      rewardPoints:
+        type: "integer"
+      twitterID:
+        type: "string"
+      facebookName:
+        type: "string"
+      creditCardLastNumbers:
+        type: "string"
+      GLN:
+        type: "string"
+      deliveryTypeID:
+        type: "integer"
+      image:
+        type: "string"
+      customerBalanceDisabled:
+        type: "integer"
+      rewardPointsDisabled:
+        type: "integer"
+      posCouponsDisabled:
+        type: "integer"
+      emailOptOut:
+        type: "integer"
+      signUpStoreID:
+        type: "integer"
+      homeStoreID:
+        type: "integer"
+      gender:
+        type: "string"
+
+
+#parameters:
+#  AuthorizationBearer:
+#    description: Authorization Bearer
+#    name: Authorization
+#    type: string
+#    in: header
+#    required: false
+#    x-nullable: false

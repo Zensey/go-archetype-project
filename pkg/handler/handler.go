@@ -3,44 +3,92 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
+
+	"github.com/go-chi/chi"
+
+	"github.com/Zensey/go-archetype-project/pkg/svc"
 
 	"github.com/Zensey/go-archetype-project/pkg/domain"
-	"github.com/Zensey/go-archetype-project/pkg/logger"
+	"github.com/Zensey/slog"
 )
 
 type Handler struct {
-	l logger.Logger
-	u domain.BalanceUpdaterDAO
+	l slog.Logger
+	s *svc.CustomerService
 }
 
-func NewHandler(l logger.Logger, u domain.BalanceUpdaterDAO) *Handler {
-	return &Handler{l, u}
+func NewHandler(l slog.Logger, s *svc.CustomerService) *Handler {
+	return &Handler{l, s}
 }
 
-func (h *Handler) UpdateBalance(w http.ResponseWriter, r *http.Request) {
+func setCORS(w http.ResponseWriter) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, PUT, PATCH, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, api_key, Authorization")
+}
+
+func (h *Handler) SaveCustomer(w http.ResponseWriter, r *http.Request) {
+	setCORS(w)
+	if r.Method != http.MethodPost {
+		return
+	}
+
 	err := func() error {
-		req := domain.BalanceUpdate{}
-		dec := json.NewDecoder(r.Body)
-		if err := dec.Decode(&req); err != nil {
-			return err
-		}
-		h.l.Info(req)
+		cu := domain.Customer{}
 
-		req.Source = r.Header.Get("Source-Type")
-		if err := req.Validate(); err != nil {
+		if err := json.NewDecoder(r.Body).Decode(&cu); err != nil {
 			return err
 		}
-		return h.u.UpdateBalanceInTx(req)
+		cu.Dirty = true
+
+		err := h.s.SaveCustomerInTx(&cu)
+		if err != nil {
+			return err
+		}
+		return json.NewEncoder(w).Encode(&cu)
 	}()
 
 	if err != nil {
 		h.l.Error(err.Error())
-
-		switch err.(type) {
-		case *domain.LogicError:
-			w.WriteHeader(http.StatusBadRequest)
-		default:
-			w.WriteHeader(http.StatusInternalServerError)
-		}
+		w.WriteHeader(http.StatusInternalServerError)
 	}
+}
+
+func (h *Handler) GetCustomers(w http.ResponseWriter, r *http.Request) {
+	setCORS(w)
+	err := func() error {
+		c, err := h.s.GetCustomers()
+		if err != nil {
+			return err
+		}
+
+		return json.NewEncoder(w).Encode(&c)
+	}()
+
+	if err != nil {
+		h.l.Error(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+}
+
+func FileServer(r chi.Router, path string, root http.FileSystem) {
+	if strings.ContainsAny(path, "{}*") {
+		panic("FileServer does not permit any URL parameters.")
+	}
+
+	if path != "/" && path[len(path)-1] != '/' {
+		r.Get(path, http.RedirectHandler(path+"/", 301).ServeHTTP)
+		path += "/"
+	}
+	path += "*"
+
+	r.Get(path, func(w http.ResponseWriter, r *http.Request) {
+		setCORS(w)
+
+		rctx := chi.RouteContext(r.Context())
+		pathPrefix := strings.TrimSuffix(rctx.RoutePattern(), "/*")
+		fs := http.StripPrefix(pathPrefix, http.FileServer(root))
+		fs.ServeHTTP(w, r)
+	})
 }

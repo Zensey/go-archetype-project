@@ -14,12 +14,15 @@ services:
       - DB_NAME=db
       - DB_USER=db
       - DB_PASSWORD=xxx
+      - ERPLY_USERNAME=jnashicq@gmail.com
+      - ERPLY_PASSWORD=demo1234
+      - ERPLY_CLIENTCODE=113746
 
-      - TYPES=game,server,payment
-      - N=1 # tickerPeriod [minute]
 
   db:
     image: postgres
+    ports:
+      - "5432:5432"
     networks:
       - internal
     environment:
@@ -29,6 +32,18 @@ services:
     volumes:
       - postgresql:/var/lib/postgresql
       - postgresql_data:/var/lib/postgresql/data
+
+  swagger:
+    ports:
+      - "80:8080"
+    networks:
+      - internal
+    image: "swaggerapi/swagger-ui"
+#    depends_on:
+#      - web
+    environment:
+      - URL=http://localhost:8080/files/swagger.yaml
+
 
 networks:
   internal:

@@ -8,4 +8,5 @@ WORKDIR /app
 
 RUN make get-deps
 RUN make demo
+
 CMD ["/app/demo"]

@@ -5,32 +5,48 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"strconv"
-	"strings"
+	"path/filepath"
 	"time"
 
-	"github.com/Zensey/go-archetype-project/pkg/data"
+	"github.com/Zensey/go-archetype-project/pkg/cfg"
 	"github.com/Zensey/go-archetype-project/pkg/domain"
 	"github.com/Zensey/go-archetype-project/pkg/handler"
-	"github.com/Zensey/go-archetype-project/pkg/logger"
-	"github.com/Zensey/go-archetype-project/pkg/migrations"
+	"github.com/Zensey/go-archetype-project/pkg/svc"
 	"github.com/Zensey/go-archetype-project/pkg/utils"
+	"github.com/Zensey/slog"
 	"github.com/go-chi/chi"
-	"github.com/go-pg/pg/v9"
+	"github.com/go-pg/pg/v10"
+	"github.com/go-pg/pg/v10/orm"
 	"github.com/oklog/run"
 )
 
 var version string
 
-func main() {
-	l, _ := logger.NewLogger(logger.LogLevelDebug, "demo", logger.BackendConsole)
-	l.Infof("Starting up! Version: %s", version)
-
-	domain.SetBalanceUpdateSourcesEnum(strings.Split(os.Getenv("TYPES"), ","))
-	n, _ := strconv.Atoi(os.Getenv("N"))
-	if n <= 0 {
-		n = 5
+func createSchema(db *pg.DB) error {
+	models := []interface{}{
+		(*domain.Customer)(nil),
 	}
+	for _, model := range models {
+		//db.Model(model).DropTable(&orm.DropTableOptions{
+		//	IfExists: false,
+		//	Cascade:  false,
+		//})
+
+		err := db.Model(model).CreateTable(&orm.CreateTableOptions{
+			IfNotExists: true,
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func main() {
+	l := slog.ConsoleLogger()
+	l.SetLevel(slog.LevelTrace)
+	l.Infof("Starting up! Version: %s", version)
 
 	db := pg.Connect(&pg.Options{
 		Addr:     os.Getenv("DB_ADDR"),
@@ -38,6 +54,7 @@ func main() {
 		User:     os.Getenv("DB_USER"),
 		Password: os.Getenv("DB_PASSWORD"),
 	})
+	defer db.Close()
 
 	// wait while db is starting
 	for {
@@ -47,22 +64,27 @@ func main() {
 		}
 		time.Sleep(1 * time.Second)
 	}
-	migrations.Run(db, l)
-
-	dao := data.NewDAO(l, db)
-
-	jobPeriod := time.Duration(n) * time.Minute
-	job := func() {
-		userID := 0
-		err := dao.CancelLastNOddLedgerRecordsInTx(userID)
-		if err != nil {
-			l.Error("Callee error>", err)
-		}
+	err := createSchema(db)
+	if err != nil {
+		panic(err)
 	}
 
-	h := handler.NewHandler(l, dao)
+	cr := &cfg.ErplyCredentials{
+		Username:   os.Getenv("ERPLY_USERNAME"),
+		Password:   os.Getenv("ERPLY_PASSWORD"),
+		ClientCode: os.Getenv("ERPLY_CLIENTCODE"),
+	}
+	svc := svc.NewCustomerService(db, cr, l)
+
+	h := handler.NewHandler(l, svc)
 	r := chi.NewRouter()
-	r.Post("/update-balance", h.UpdateBalance)
+	r.Options("/save-customer", h.SaveCustomer)
+	r.Post("/save-customer", h.SaveCustomer)
+	r.Get("/customers", h.GetCustomers)
+
+	workDir, _ := os.Getwd()
+	filesDir := http.Dir(filepath.Join(workDir, "."))
+	handler.FileServer(r, "/files", filesDir)
 
 	// start http
 	listener, err := net.Listen("tcp", ":8080")
@@ -80,11 +102,11 @@ func main() {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		jobStop := make(chan struct{})
-		g.Add(func() error { utils.RunPeriodically(ctx, jobStop, jobPeriod, job); return nil }, func(err error) { cancel(); <-jobStop })
+		//g.Add(func() error { return utils.RunPeriodically(ctx, svc.time.Minute, svc.SyncCustomers) }, func(err error) { cancel(); svc.WaitSyncCustomersFinish() })
+		g.Add(func() error { return svc.SyncCustomersPeriodic(ctx) }, func(err error) { cancel(); svc.WaitSyncCustomersFinish() })
 		g.Add(func() error { return s.Wait() }, func(err error) { s.Stop() })
 		g.Add(func() error { return srv.Serve(listener) }, func(err error) { srv.Shutdown(ctx) })
 		g.Run()
 	}
-	return
+	l.Error("Exit>")
 }

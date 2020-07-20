@@ -1,17 +1,20 @@
-Run the service with  
+####To run 
 
 * `make docker-build`
+   
+   Swagger-UI: http://localhost
+   
+   Swagger file: http://localhost:8080/files/swagger.yaml
+   
 
-To reset the database run
-
-* `make docker-db-reset`
-
-To inspect the database (psql) run
+####To inspect the database (psql) run
 
 * `make docker-db-shell`
 
+####To reset the database run
 
-Request samples can be seen in `update-balance.http` and can be run from GoLand / Idea IDE.
+* `make docker-db-reset`
+
 
 
  

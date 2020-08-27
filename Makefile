@@ -6,16 +6,13 @@ ENV=GO111MODULE=on
 
 BINARY = demo
 PKG1 = "github.com/Zensey/go-archetype-project/cmd/demo"
-PKG2 = "github.com/Zensey/go-archetype-project/pkg/logger"
-PKGS = $(PKG1) $(PKG2)
+PKGS = $(PKG1)
 report = lint_report.txt
 
 .DEFAULT_GOAL: $(BINARY)
 all: get-deps $(BINARY)
 
 get-deps:
-	$(ENV) $(GO) get -u -a golang.org/x/tools/cmd/stringer
-
 	$(ENV) $(GO) get -u github.com/golang/lint/golint
 	$(ENV) $(GO) get -u github.com/kisielk/errcheck
 	$(ENV) $(GO) get -u honnef.co/go/tools/cmd/staticcheck

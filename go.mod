@@ -3,6 +3,7 @@ module github.com/Zensey/go-archetype-project
 go 1.12
 
 require (
+    github.com/Zensey/slog v1.0.1-0.20200720031627-bc8ac5187edc
 	github.com/creack/pty v1.1.9 // indirect
 	github.com/go-chi/chi v4.0.2+incompatible
 	github.com/go-pg/migrations/v7 v7.1.9

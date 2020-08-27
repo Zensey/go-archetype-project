@@ -1,20 +1,15 @@
 package main
 
 import (
-	"github.com/Zensey/go-archetype-project/pkg/logger"
+	"github.com/Zensey/slog"
 )
 
-var (
-	l       logger.Logger
-	version string
-)
-
-func init() {
-	l, _ = logger.NewLogger(logger.LogLevelInfo, "demo", logger.BackendConsole)
-}
+var version string
 
 func main() {
+	l := slog.ConsoleLogger()
+	l.SetLevel(slog.LevelTrace)
 	l.Infof("Hello, World ! Version: %s", version)
-	println(logger.L_EMERG.String())
+
 	return
 }

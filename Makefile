@@ -36,7 +36,6 @@ lint:
 	$(ENV) interfacer $(PKGS)  &>> $(report)
 
 $(BINARY):
-	$(ENV) $(GO) generate ./pkg/logger
 	$(ENV) $(GO) build -v $(LDFLAGS) ./cmd/demo
 
 clean:

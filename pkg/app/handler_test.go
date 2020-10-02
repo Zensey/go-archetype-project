@@ -1,4 +1,4 @@
-package main
+package app
 
 import (
 	"io/ioutil"
@@ -87,8 +87,8 @@ func runRequestsTest(ch chan reqResult, client *http.Client, l logger.Logger, t 
 
 		// detection of a delay caused by a throttle
 		accuracy := 0.99
-		if r.time > int64(throttlePeriodSec*nanoSecMultiplier*accuracy) {
-			l.Infof("reqest-result > worker %d r# %d %f", r.clientID, r.number, float64(r.time)/float64(nanoSecMultiplier))
+		if r.time > int64(throttlePeriodSec*toNanoSec*accuracy) {
+			l.Infof("reqest-result > worker %d r# %d %f", r.clientID, r.number, float64(r.time)/float64(toNanoSec))
 		}
 	}
 	return maxI

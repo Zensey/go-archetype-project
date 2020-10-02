@@ -3,7 +3,8 @@ module github.com/Zensey/go-archetype-project
 go 1.12
 
 require (
-    github.com/Zensey/slog v1.0.1-0.20200720031627-bc8ac5187edc
+	bitbucket.org/Zensey/go-archetype-project v0.0.0-20181015010150-11af92c67425 // indirect
+	github.com/Zensey/slog v1.0.1-0.20200720031627-bc8ac5187edc
 	github.com/creack/pty v1.1.9 // indirect
 	github.com/go-chi/chi v4.0.2+incompatible
 	github.com/go-pg/migrations/v7 v7.1.9
@@ -17,6 +18,7 @@ require (
 	github.com/onsi/ginkgo v1.11.0 // indirect
 	github.com/onsi/gomega v1.8.1 // indirect
 	github.com/rogpeppe/go-internal v1.5.1 // indirect
+	github.com/stretchr/testify v1.6.1 // indirect
 	golang.org/x/crypto v0.0.0-20191227163750-53104e6ec876 // indirect
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e // indirect
 	golang.org/x/sys v0.0.0-20200103143344-a1369afcdac7 // indirect

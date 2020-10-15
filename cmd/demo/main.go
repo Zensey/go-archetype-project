@@ -18,7 +18,9 @@ func findFirstPositive(a []int) (i int, v int) {
 	return -1, 0
 }
 
-func main() {
+// Find the smallest positive number missing from an unsorted array
+
+func task1() {
 	a := []int{2, 3, -7, 6, 8, 1, -10, 15}
 	fmt.Println(a)
 
@@ -37,5 +39,21 @@ func main() {
 
 	firstPosI, _ := findFirstPositive(a)
 	fmt.Println(a, firstPosI+1)
+	return
+}
+
+/* task2:
+	You are given a list of n-1 integers and these integers are in the range of 1 to n. There are no duplicates in list. One of the integers is missing in the list.
+
+	I/P    [1, 2, 4, ,6, 3, 7, 8]
+	O/P    5
+
+       S=(1+n)*n/2
+       S_act
+       missing = S_calc - S_act
+*/
+
+func main() {
+	task1()
 	return
 }

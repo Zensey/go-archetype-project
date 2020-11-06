@@ -1,9 +1,9 @@
-FROM golang:1.12.9-alpine3.9
+FROM golang:1.14-alpine
 
 RUN apk add --no-cache \
-	build-base
+	build-base git
 
 ADD . /app/
 WORKDIR /app
-RUN make demo
-CMD ["/app/demo"]
+RUN make fiatconv
+CMD ["/app/fiatconv"]

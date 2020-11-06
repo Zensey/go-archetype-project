@@ -1,18 +1,19 @@
-# go-archetype-project
+# fiatconv
 
-Golang archetype project with following features:
- * Makefile
- * statical code analyzers & checkers,
- * local GOPATH and workplace
- * dependencies got & stored locally and separately from sources
- * use of go dep to automatically find dependencies
+## Usage: 
 
- * stringer generator
- * logger helper with levels of logging, string formatting
- * `Dockerfile` and `docker-compose.yml` which allow to boot up application in a single `docker-compose up` command.
+`fiatconv <amount_src:float> <src_symbol:string> <dst_symbol:string>`
 
-Makefile rules
-* make get-deps
-* make demo
-* make lint
-* make docker-build
+Arguments:
+*  amount_src  Amount to convert
+*  src_symbol  Currency you are converting from
+*  dst_symbol  Currency you are converting to
+
+Example:
+
+`fiatconv 100 EUR GBP`
+
+## Makefile rules
+* `make fiatconv`
+* `make docker-build`
+* `make lint`

@@ -70,7 +70,7 @@ func main() {
 
 	ratio, err := getRatio(data, symbolSrc, symbolDst)
 	if err != nil {
-		fatal("%v", err)
+		fatal("Error: %v", err)
 	}
 
 	amountDst := ratio * amountSrc

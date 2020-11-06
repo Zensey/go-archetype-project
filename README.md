@@ -9,9 +9,13 @@ Arguments:
 *  src_symbol  Currency you are converting from
 *  dst_symbol  Currency you are converting to
 
-Example:
+Example: 
 
 `fiatconv 100 EUR GBP`
+
+Output:
+
+`100.00 EUR = 90.43 GBP`
 
 ## Makefile rules
 * `make fiatconv`

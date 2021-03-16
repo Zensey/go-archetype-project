@@ -1,0 +1,78 @@
+{
+  "$id": "https://github.com/ory/hydra/docs/config.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Configuration",
+  "type": "object",
+  "definitions": {
+
+  },
+
+  "properties": {
+    "log": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Configures the logger",
+      "properties": {
+        "level": {
+          "type": "string",
+          "description": "Sets the log level.",
+          "enum": [
+            "panic",
+            "fatal",
+            "error",
+            "warn",
+            "info",
+            "debug",
+            "trace"
+          ],
+          "default": "info"
+        },
+        "leak_sensitive_values": {
+          "type": "boolean",
+          "description": "Logs sensitive values such as cookie and URL parameter.",
+          "default": false
+        },
+        "format": {
+          "type": "string",
+          "description": "Sets the log format.",
+          "enum": [
+            "json",
+            "json_pretty",
+            "text"
+          ],
+          "default": "text"
+        }
+      }
+    },
+
+
+    "dsn": {
+      "type": "string",
+      "description": "Sets the data source name. This configures the backend where ORY Hydra persists data. If dsn is \"memory\", data will be written to memory and is lost when you restart this instance. ORY Hydra supports popular SQL databases. For more detailed configuration information go to: https://www.ory.sh/docs/hydra/dependencies-environment#sql"
+    },
+
+
+    "cgroups": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "ORY Hydra can respect Linux container CPU quota",
+      "properties": {
+        "v1": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Configures parameters using cgroups v1 hierarchy",
+          "properties": {
+            "auto_max_procs_enabled": {
+              "type": "boolean",
+              "description": "Set GOMAXPROCS automatically according to cgroups limits",
+              "default": false,
+              "examples": [
+                true
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

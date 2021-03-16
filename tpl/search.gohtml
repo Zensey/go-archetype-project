@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Customers</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.11.4/themes/redmond/jquery-ui.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/free-jqgrid/4.15.5/css/ui.jqgrid.min.css">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/free-jqgrid/4.15.5/jquery.jqgrid.min.js"></script>
+
+    <script>
+        //<![CDATA[
+        var q = "11";
+
+        function getData(pdata) {
+            var params = new Object();
+            params.page = pdata.page;
+            params.pageSize = pdata.rows;
+            params.sortIndex = pdata.sidx;
+            params.sortDirection = pdata.sord;
+
+
+            $.ajax({
+                type: "GET",
+                contentType: "application/json; charset=utf-8",
+                url: "customers?q=2",
+                //data: JSON.stringify(params),
+                dataType: "json",
+                success: function(data, textStatus) {
+                    if (textStatus == "success") {
+                        var thegrid = $("#list")[0];
+                        thegrid.addJSONData(data.d);
+                    }
+                },
+                error: function(data, textStatus) {
+                    alert('An error has occured retrieving data!');
+                }
+            });
+        }
+
+        $(function () {
+            "use strict";
+            $("#list").jqGrid({
+                url: "api/customers",
+                datatype: "json",
+                mtype: 'GET',
+                postData:{
+                    fname: function () { return jQuery("#textbox1").val(); },
+                    lname: function () { return jQuery("#textbox2").val(); }
+                },
+
+                rowNum:10,
+                rowList:[10,20,30],
+                pager: true,
+                toppager: true,
+                sortname: 'id',
+
+                colModel: [
+                    { name: "id", label: "ID", width: 75},
+                    { name: "first_name", label: "First Name"},
+                    { name: "last_name", label: "Last name"},
+                    { name: "birth_date", label: "Birth Date", width: 75, align: "center", sorttype: "date", formatter: "date", formatoptions: { newformat: "Y/M/d" } },
+                    { name: "gender", label: "Gender", width: 75},
+                    { name: "email", label: "Email"},
+                    { name: "address", label: "Address"}
+
+                    //{ name: "ship_via", label: "Shipped via", width: 87, align: "center", formatter: "select", formatoptions: { value: "FE:FedEx;TN:TNT;DH:DHL", defaultValue: "DH" } }
+                ],
+                onSelectRow: function(rowId) {
+                    $("#btn1").attr("disabled", false);
+                    $("#btn1").data("id", rowId);
+                },
+                ondblClickRow: function(rowId) {
+                    window.location.href = '/edit?id='+rowId;
+                },
+                gridComplete:function(ids) {
+                    $("#btn1").attr("disabled", true);
+                },
+
+            });
+
+            $("#textbox1").on("input", function() {
+                var input = $(this);
+                var val = input.val();
+                if (input.data("lastval") != val) {
+                    input.data("lastval", val);
+                    $("#list").trigger("reloadGrid");
+                }
+            });
+            $("#textbox2").bind("change paste keyup", function() {
+                var input = $(this);
+                var val = input.val();
+                if (input.data("lastval") != val) {
+                    input.data("lastval", val);
+                    $("#list").trigger("reloadGrid");
+                }
+            });
+
+            $("#btn1").on("click", function() {
+                var input = $(this);
+                window.location.href = '/edit?id='+input.data("id");
+            });
+            $("#btn2").on("click", function() {
+                window.location.href = '/new';
+            });
+        });
+        //]]>
+    </script>
+</head>
+<body>
+<h2>Search</h2>
+
+<p>First Name: <input id="textbox1" type="text"/> Last Name: <input id="textbox2" type="text"/></p>
+<p></p>
+
+<table id="list"></table>
+
+<p>
+    <input type="button" value="Edit customer..." id="btn1"></input>
+    <input type="button" value="New customer..." id="btn2"></input>
+</p>
+</body>
+</html>

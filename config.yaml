@@ -1,0 +1,12 @@
+log:
+  # "panic", "fatal", "error", "warn", "info" and "debug". default: "info".
+  level: info
+  # text / json
+  format: text
+
+dsn: postgres://customers:secret@localhost:5433/customers
+
+serve:
+  public:
+    port: 3010
+    host: 0.0.0.0

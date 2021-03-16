@@ -1,7 +1,32 @@
-version: '3'
+version: '3.7'
+
 services:
   web:
     build: .
     ports:
-     - "8080:8080"
-    image: "go-archetype-project"
+      - "3010:3010"
+    expose:
+      - "3010"
+    image: "customers"
+    environment:
+      - DSN=postgres://customers:secret@postgresd:5432/customers
+      - SERVE_PUBLIC_HOST=0.0.0.0
+
+    networks:
+      - intranet
+
+  postgresd:
+    image: postgres:9.6
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_USER=customers
+      - POSTGRES_PASSWORD=secret
+      - POSTGRES_DB=customers
+      - POSTGRES_EXTENSIONS=uuid-ossp
+
+    networks:
+      - intranet
+
+networks:
+  intranet:

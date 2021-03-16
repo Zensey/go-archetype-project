@@ -1,7 +1,7 @@
 ## how to demo
 * docker-compose build
 * docker-compose up
-
+* open http://localhost:3010/
 
 ## settings
 

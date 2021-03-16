@@ -1,8 +1,6 @@
-# customers-go
-
 ## how to demo
-docker-compose build
-docker-compose up
+* docker-compose build
+* docker-compose up
 
 
 ## settings

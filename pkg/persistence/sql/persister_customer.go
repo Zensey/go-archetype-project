@@ -14,8 +14,7 @@ func (p *Persister) GetCustomerById(ctx context.Context, id int64) (*customer.Cu
 	return &cl, sqlcon.HandleError(p.Connection(ctx).Where("id = ?", id).First(&cl).Error)
 }
 
-func (p *Persister) GetCustomers(ctx context.Context, qo *customer.CustomersQueryOptions) ([]customer.Customer, error) {
-
+func whereClauseBuilder(qo *customer.CustomersQueryOptions) (string, []interface{}) {
 	args := make([]interface{}, 0)
 	pred := make([]string, 0)
 	if qo.FirstName != "" || qo.LastName != "" {
@@ -28,46 +27,40 @@ func (p *Persister) GetCustomers(ctx context.Context, qo *customer.CustomersQuer
 			args = append(args, "%"+qo.LastName+"%")
 		}
 	}
-	qq := "select count(1) from customers"
 	whereStr := ""
 	if len(pred) > 0 {
 		whereStr = " where " + strings.Join(pred, " and ")
 	}
+	return whereStr, args
+}
 
+func (p *Persister) GetCustomers(ctx context.Context, qo *customer.CustomersQueryOptions) ([]customer.Customer, error) {
+
+	whereClause, args := whereClauseBuilder(qo)
+
+	qq := "select count(1) from customers"
 	cnt := int64(0)
-	p.Connection(ctx).Raw(qq+whereStr, args...).Scan(&cnt)
+	p.Connection(ctx).Raw(qq+whereClause, args...).Scan(&cnt)
 
-	////////////////////////////////////////////
-	pages := 1
-	if qo.Limit > 0 {
-		pages = int(cnt) / qo.Limit
-		if int(cnt)%qo.Limit > 0 {
-			pages += 1
-		}
-	}
-	if qo.Page > pages {
-		qo.Page = pages
-	}
-	qo.ResultPages = pages
-	qo.ResultPage = qo.Page
-	qo.ResultRecs = int(cnt)
+	qo.SetPaginationAttrs(int(cnt))
 
-	cl := make([]customer.Customer, 0)
-	if qo.OrderBy == "" {
-		qo.OrderBy = "id"
+	if qo.OrderByCol == "" {
+		qo.OrderByCol = "id"
 	}
-	orderBy := qo.OrderBy
+	orderBy := qo.OrderByCol
 	if qo.Order != "" {
 		orderBy += " " + qo.Order
 	}
 
-	q := fmt.Sprintf("select * from (select * from customers c %s order by %s) t limit ? offset ? ", whereStr, orderBy)
+	q := fmt.Sprintf("select * from (select * from customers c %s order by %s) t limit ? offset ? ", whereClause, orderBy)
 
 	args = append(args, qo.Limit)
 	args = append(args, (qo.Page-1)*qo.Limit)
-	err := p.Connection(ctx).Raw(q, args...).Scan(&cl).Error
 
-	return cl, sqlcon.HandleError(err)
+	customers := make([]customer.Customer, 0)
+	err := p.Connection(ctx).Raw(q, args...).Scan(&customers).Error
+
+	return customers, sqlcon.HandleError(err)
 }
 
 func (p *Persister) CreateCustomer(ctx context.Context, c *customer.Customer) error {

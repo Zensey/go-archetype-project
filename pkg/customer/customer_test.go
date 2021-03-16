@@ -52,7 +52,7 @@ var samples2 = []struct {
 
 func TestValidator(t *testing.T) {
 	for _, v := range samples2 {
-		errors := make([]string, 0)
+		errors := make([]customer.ErrorKV, 0)
 		v.Validate(&errors)
 		//fmt.Println(v.ID, errors)
 

@@ -14,13 +14,14 @@
 <h2>Edit customer: #{{ .ID }}</h2>
 
 <form action="/edit" method="post">
-{{if .Errors}} <h2>Errors:</h2>
-<ul>
-	{{range .Errors}}
-  		<li>{{.}}</li>
-	{{end}}
-</ul>
-{{end}}
+    {{if .ErrorMap}} <h2>Errors:</h2>
+    <ul>
+        {{ range .ErrorMap }}
+            <li><strong>{{ .K }}</strong>: {{ .V }}</li>
+        {{ end }}
+    </ul>
+    {{end}}
+
 
   <input type="hidden" id="id" name="id" value="{{ .ID }}"><br>
 

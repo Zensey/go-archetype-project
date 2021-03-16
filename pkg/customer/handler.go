@@ -2,7 +2,6 @@ package customer
 
 import (
 	"encoding/json"
-	"fmt"
 	"html/template"
 	"net/http"
 	"strconv"
@@ -63,12 +62,12 @@ func (h *Handler) ViewCustomers(w http.ResponseWriter, r *http.Request) {
 	h.tplSearch.Execute(w, nil)
 }
 
-type CustomerFormView struct {
+type EditFormView struct {
 	*Customer
-	Errors []string
+	ErrorMap []ErrorKV
 }
 
-func copyFormData(r *http.Request, f *CustomerFormView) {
+func copyFormData(r *http.Request, f *EditFormView) {
 	c := f.Customer
 	frm := r.Form
 
@@ -76,7 +75,7 @@ func copyFormData(r *http.Request, f *CustomerFormView) {
 	c.LastName = frm.Get("last_name")
 	dt, err := time.Parse(dateFormat, frm.Get("birth_date"))
 	if err != nil {
-		f.Errors = append(f.Errors, "birth_date")
+		f.ErrorMap = append(f.ErrorMap, ErrorKV{"birth_date", "Wrong format"})
 	}
 	c.BirthDate = JSONTime(dt)
 	c.Gender = frm.Get("gender")
@@ -89,22 +88,21 @@ func (h *Handler) New(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case "GET":
-		err := h.tplNew.Execute(w, &CustomerFormView{&Customer{}, nil})
-		fmt.Println("err>", err)
+		h.tplNew.Execute(w, &EditFormView{&Customer{}, nil})
 
 	case "POST":
 		r.ParseForm()
 
-		f := CustomerFormView{
+		f := EditFormView{
 			Customer: &Customer{},
-			Errors:   make([]string, 0),
+			ErrorMap: make([]ErrorKV, 0),
 		}
 		c := f.Customer
 
 		copyFormData(r, &f)
-		c.Validate(&f.Errors)
+		c.Validate(&f.ErrorMap)
 
-		if len(f.Errors) == 0 {
+		if len(f.ErrorMap) == 0 {
 			h.r.CustomersManager().SaveCustomer(ctx, c)
 
 			id := strconv.FormatInt(c.ID, 10)
@@ -123,27 +121,28 @@ func (h *Handler) Edit(w http.ResponseWriter, r *http.Request) {
 	case "GET":
 		id, _ := strconv.ParseInt(r.URL.Query().Get("id"), 10, 64)
 		c, err := h.r.CustomersManager().GetCustomerById(ctx, id)
-
-		err = h.tplEdit.Execute(w, &CustomerFormView{c, nil})
-		fmt.Println("err>", err)
+		if err != nil {
+			http.Redirect(w, r, ViewPath, http.StatusFound)
+		}
+		h.tplEdit.Execute(w, &EditFormView{c, nil})
 
 	case "POST":
 		err := r.ParseForm()
 
-		f := CustomerFormView{
+		f := EditFormView{
 			Customer: &Customer{},
-			Errors:   make([]string, 0),
+			ErrorMap: make([]ErrorKV, 0),
 		}
 		c := f.Customer
 		c.ID, err = strconv.ParseInt(r.Form.Get("id"), 10, 64)
 		if err != nil {
-			f.Errors = append(f.Errors, "id")
+			f.ErrorMap = append(f.ErrorMap, ErrorKV{"id", err.Error()})
 		}
 
 		copyFormData(r, &f)
-		c.Validate(&f.Errors)
+		c.Validate(&f.ErrorMap)
 
-		if len(f.Errors) == 0 {
+		if len(f.ErrorMap) == 0 {
 			h.r.CustomersManager().SaveCustomer(ctx, c)
 			http.Redirect(w, r, "/edit?id="+r.Form.Get("id"), http.StatusFound)
 			return
@@ -157,12 +156,12 @@ func (h *Handler) GetCustomers(w http.ResponseWriter, r *http.Request) {
 	var ctx = r.Context()
 
 	o := CustomersQueryOptions{
-		Page:      1,
-		Limit:     10,
-		OrderBy:   r.URL.Query().Get("sidx"),
-		Order:     r.URL.Query().Get("sord"),
-		FirstName: r.URL.Query().Get("fname"),
-		LastName:  r.URL.Query().Get("lname"),
+		Page:       1,
+		Limit:      10,
+		OrderByCol: r.URL.Query().Get("sidx"),
+		Order:      r.URL.Query().Get("sord"),
+		FirstName:  r.URL.Query().Get("fname"),
+		LastName:   r.URL.Query().Get("lname"),
 	}
 	p, _ := strconv.Atoi(r.URL.Query().Get("page"))
 	if p > 0 {

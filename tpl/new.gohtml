@@ -14,11 +14,11 @@
 <h2>New customer</h2>
 
 <form action="/new" method="post">
-    {{if .Errors}} <h2>Errors:</h2>
+    {{if .ErrorMap}} <h2>Errors:</h2>
     <ul>
-        {{range .Errors}}
-            <li>{{.}}</li>
-        {{end}}
+        {{ range .ErrorMap }}
+            <li><strong>{{ .K }}</strong>: {{ .V }}</li>
+        {{ end }}
     </ul>
     {{end}}
 

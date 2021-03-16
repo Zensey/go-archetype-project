@@ -15,19 +15,6 @@ type Registry interface {
 	CustomersManager() Manager
 }
 
-type CustomersQueryOptions struct {
-	Page      int
-	Limit     int
-	OrderBy   string
-	Order     string
-	FirstName string
-	LastName  string
-
-	ResultPages int
-	ResultPage  int
-	ResultRecs  int
-}
-
 type Manager interface {
 	GetCustomerById(ctx context.Context, id int64) (*Customer, error)
 	GetCustomers(ctx context.Context, qo *CustomersQueryOptions) ([]Customer, error)

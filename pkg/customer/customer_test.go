@@ -8,7 +8,7 @@ import (
 	"github.com/Zensey/go-archetype-project/pkg/customer"
 )
 
-var samples2 = []struct {
+var sampleCustomers = []struct {
 	customer.Customer
 	valid bool
 }{
@@ -51,10 +51,9 @@ var samples2 = []struct {
 }
 
 func TestValidator(t *testing.T) {
-	for _, v := range samples2 {
+	for _, v := range sampleCustomers {
 		errors := make([]customer.ErrorKV, 0)
 		v.Validate(&errors)
-		//fmt.Println(v.ID, errors)
 
 		if len(errors) > 0 && v.valid {
 			t.Errorf(`id: "%v" => unexpected error: %v`, v.ID, errors)

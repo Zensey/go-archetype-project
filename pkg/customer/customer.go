@@ -38,30 +38,30 @@ type ErrorKV struct {
 	K, V string
 }
 
-func (c Customer) Validate(errorsKV *[]ErrorKV) {
+func (c Customer) Validate(errors *[]ErrorKV) {
 	if len(c.FirstName) == 0 || len(c.FirstName) > 100 {
-		*errorsKV = append(*errorsKV, ErrorKV{"first_name", "Length should be 1..100"})
+		*errors = append(*errors, ErrorKV{"first_name", "Length should be 1..100"})
 	}
 	if len(c.LastName) == 0 || len(c.LastName) > 100 {
-		*errorsKV = append(*errorsKV, ErrorKV{"last_name", "Length should be 1..100"})
+		*errors = append(*errors, ErrorKV{"last_name", "Length should be 1..100"})
 	}
 	switch c.Gender {
 	case "Male":
 	case "Female":
 	default:
-		*errorsKV = append(*errorsKV, ErrorKV{"gender", "Gender should be Male|Female"})
+		*errors = append(*errors, ErrorKV{"gender", "Gender should be Male|Female"})
 	}
 	if len(c.Address) > 200 {
-		*errorsKV = append(*errorsKV, ErrorKV{"address", "Length should not exceed 200"})
+		*errors = append(*errors, ErrorKV{"address", "Length should not exceed 200"})
 	}
 	if !IsEmailValid(c.Email) {
-		*errorsKV = append(*errorsKV, ErrorKV{"email", "Invalid email format"})
+		*errors = append(*errors, ErrorKV{"email", "Invalid email format"})
 	}
 
 	if time.Time(c.BirthDate).Before(time.Now().AddDate(-60, 0, 0)) {
-		*errorsKV = append(*errorsKV, ErrorKV{"birth_day", "Should not be older than 60"})
+		*errors = append(*errors, ErrorKV{"birth_day", "Should not be older than 60"})
 	}
 	if time.Time(c.BirthDate).After(time.Now().AddDate(-18, 0, 0)) {
-		*errorsKV = append(*errorsKV, ErrorKV{"birth_day", "Should not be younger than 18"})
+		*errors = append(*errors, ErrorKV{"birth_day", "Should not be younger than 18"})
 	}
 }

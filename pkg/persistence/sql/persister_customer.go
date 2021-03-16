@@ -34,15 +34,14 @@ func whereClauseBuilder(qo *customer.CustomersQueryOptions) (string, []interface
 	return whereStr, args
 }
 
-func (p *Persister) GetCustomers(ctx context.Context, qo *customer.CustomersQueryOptions) ([]customer.Customer, error) {
+func (p *Persister) GetCustomers(ctx context.Context, po *customer.PaginationOptions, qo *customer.CustomersQueryOptions) ([]customer.Customer, error) {
 
+	// count relevant customers for pagination
 	whereClause, args := whereClauseBuilder(qo)
-
 	qq := "select count(1) from customers"
 	cnt := int64(0)
 	p.Connection(ctx).Raw(qq+whereClause, args...).Scan(&cnt)
-
-	qo.SetPaginationAttrs(int(cnt))
+	po.SetPaginationAttrs(int(cnt))
 
 	if qo.OrderByCol == "" {
 		qo.OrderByCol = "id"
@@ -51,12 +50,9 @@ func (p *Persister) GetCustomers(ctx context.Context, qo *customer.CustomersQuer
 	if qo.Order != "" {
 		orderBy += " " + qo.Order
 	}
-
 	q := fmt.Sprintf("select * from (select * from customers c %s order by %s) t limit ? offset ? ", whereClause, orderBy)
-
-	args = append(args, qo.Limit)
-	args = append(args, (qo.Page-1)*qo.Limit)
-
+	args = append(args, po.Limit)
+	args = append(args, (po.Page-1)*po.Limit)
 	customers := make([]customer.Customer, 0)
 	err := p.Connection(ctx).Raw(q, args...).Scan(&customers).Error
 

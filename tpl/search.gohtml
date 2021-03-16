@@ -14,8 +14,6 @@
 
     <script>
         //<![CDATA[
-        var q = "11";
-
         function getData(pdata) {
             var params = new Object();
             params.page = pdata.page;
@@ -67,44 +65,35 @@
                     { name: "gender", label: "Gender", width: 75},
                     { name: "email", label: "Email"},
                     { name: "address", label: "Address"}
-
-                    //{ name: "ship_via", label: "Shipped via", width: 87, align: "center", formatter: "select", formatoptions: { value: "FE:FedEx;TN:TNT;DH:DHL", defaultValue: "DH" } }
                 ],
                 onSelectRow: function(rowId) {
-                    $("#btn1").attr("disabled", false);
-                    $("#btn1").data("id", rowId);
+                    $("#btnEdit").attr("disabled", false);
+                    $("#btnEdit").data("id", rowId);
                 },
                 ondblClickRow: function(rowId) {
                     window.location.href = '/edit?id='+rowId;
                 },
                 gridComplete:function(ids) {
-                    $("#btn1").attr("disabled", true);
+                    $("#btnEdit").attr("disabled", true);
                 },
-
             });
-
-            $("#textbox1").on("input", function() {
+            var onTextBoxEdit = function() {
                 var input = $(this);
                 var val = input.val();
                 if (input.data("lastval") != val) {
                     input.data("lastval", val);
                     $("#list").trigger("reloadGrid");
                 }
-            });
-            $("#textbox2").bind("change paste keyup", function() {
-                var input = $(this);
-                var val = input.val();
-                if (input.data("lastval") != val) {
-                    input.data("lastval", val);
-                    $("#list").trigger("reloadGrid");
-                }
-            });
+            };
 
-            $("#btn1").on("click", function() {
+            $("#textbox1").on("input", onTextBoxEdit);
+            $("#textbox2").on("input", onTextBoxEdit);
+
+            $("#btnEdit").on("click", function() {
                 var input = $(this);
                 window.location.href = '/edit?id='+input.data("id");
             });
-            $("#btn2").on("click", function() {
+            $("#btnNew").on("click", function() {
                 window.location.href = '/new';
             });
         });
@@ -118,10 +107,9 @@
 <p></p>
 
 <table id="list"></table>
-
 <p>
-    <input type="button" value="Edit customer..." id="btn1"></input>
-    <input type="button" value="New customer..." id="btn2"></input>
+    <input type="button" value="Edit customer..." id="btnEdit"></input>
+    <input type="button" value="New customer..." id="btnNew"></input>
 </p>
 </body>
 </html>

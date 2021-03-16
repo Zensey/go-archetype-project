@@ -14,9 +14,9 @@
 <h2>Edit customer: #{{ .ID }}</h2>
 
 <form action="/edit" method="post">
-    {{if .ErrorMap}} <h2>Errors:</h2>
+    {{if .Errors}} <h2>Errors:</h2>
     <ul>
-        {{ range .ErrorMap }}
+        {{ range .Errors }}
             <li><strong>{{ .K }}</strong>: {{ .V }}</li>
         {{ end }}
     </ul>

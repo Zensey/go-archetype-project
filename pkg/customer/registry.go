@@ -17,7 +17,7 @@ type Registry interface {
 
 type Manager interface {
 	GetCustomerById(ctx context.Context, id int64) (*Customer, error)
-	GetCustomers(ctx context.Context, qo *CustomersQueryOptions) ([]Customer, error)
+	GetCustomers(ctx context.Context, po *PaginationOptions, qo *CustomersQueryOptions) ([]Customer, error)
 
 	CreateCustomer(ctx context.Context, c *Customer) error
 	DeleteCustomer(ctx context.Context, id int64) (int, error)

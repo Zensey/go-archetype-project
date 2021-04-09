@@ -3,15 +3,6 @@
 *.a
 *.so
 bin
-lint_report.txt
-
-# Folders
-_obj
-_test
-
-src/mvdan.cc
-src/honnef.co
-src/github.com
 
 *.exe
 *.test

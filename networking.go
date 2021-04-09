@@ -54,7 +54,6 @@ func send(msg []byte, conn *net.UDPConn, addr *net.UDPAddr) error {
 }
 
 func sendStr(msg string, conn *net.UDPConn, addr *net.UDPAddr) error {
-	//fmt.Println("send", string(msg))
 	return send([]byte(msg), conn, addr)
 }
 
@@ -71,7 +70,6 @@ func decodeStunMsg(message []byte, xorAddr *stun.XORMappedAddress) error {
 	return nil
 }
 
-////
 func helperGetPeerAddr() <-chan string {
 	result := make(chan string)
 

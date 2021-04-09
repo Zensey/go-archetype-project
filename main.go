@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"net"
 	"time"
@@ -10,8 +9,8 @@ import (
 	"github.com/pion/stun"
 )
 
-var stunServer = "stun.l.google.com:19302"
 var gameServer = flag.String("game_server", "", "Game server address")
+var stunServer = flag.String("stun", "stun.l.google.com:19302", "Stun server address")
 
 const (
 	udp         = "udp4"
@@ -35,20 +34,16 @@ func (a *app) serverLogicKeepAlive() error {
 	}
 
 	for i, p := range a.peers {
-		//fmt.Println("p>", p.addr, p.isAlive(), p.state)
 		if p.addr != nil {
-
 			switch p.state {
-			case 1:
-				fmt.Println("Send HELLO >", p.addr)
+			case OK:
+				log.Println("Send HELLO:", p.addr)
 				sendStr(helloMsg, a.conn, p.addr)
-				(&a.peers[i]).setState(2)
-			case 0, 2:
-				fmt.Println("Send PING >", p.addr)
+				(&a.peers[i]).setState(HELLO_DONE)
+
+			case DISCONECTED, HELLO_DONE:
 				sendStr(pingMsg, a.conn, p.addr)
 			}
-
-			//(&a.peers[i]).fsm(HASADRESS)
 		}
 
 		if !p.isAlive() {
@@ -78,7 +73,6 @@ func main() {
 	a := app{}
 	a.isServer = true
 	if *gameServer != "" {
-		fmt.Println("game_server addr", *gameServer)
 		addr, err := net.ResolveUDPAddr(udp, *gameServer)
 		if err != nil {
 			log.Println("resolve peeraddr:", err)
@@ -88,7 +82,7 @@ func main() {
 		a.isServer = false
 	}
 
-	a.stunAddr, err = net.ResolveUDPAddr(udp, stunServer)
+	a.stunAddr, err = net.ResolveUDPAddr(udp, *stunServer)
 	if err != nil {
 		log.Fatalln("resolve serveraddr:", err)
 	}
@@ -108,24 +102,19 @@ func main() {
 			if !ok {
 				return
 			}
-			//if !stun.IsMessage(msg.data) {
-			//	fmt.Println("m>", string(msg.data), msg.addr)
-			//}
 
 			switch {
 			case string(msg.data) == pingMsg:
-				//fmt.Println("m>", string(msg.data))
-
-				pi := findPeerByAddr(msg.addr, a.peers)
-				if pi < 0 {
+				i := findPeerByAddr(msg.addr, a.peers)
+				if i < 0 {
 					p := peer{addr: msg.addr}
 					a.peers = append(a.peers, p)
-					pi = len(a.peers) - 1
+					i = len(a.peers) - 1
 				}
-				(&a.peers[pi]).fsm(ACTIVE)
+				(&a.peers[i]).fsm(ACTIVE)
 
 			case string(msg.data) == helloMsg:
-				fmt.Println("HELLO")
+				log.Println("HELLO")
 
 			case stun.IsMessage(msg.data):
 				var xorAddr stun.XORMappedAddress
@@ -152,8 +141,8 @@ func main() {
 			if err != nil {
 				log.Panicln("resolve peeraddr:", err)
 			}
-			pi := findPeerByAddr(addr, a.peers)
-			if pi < 0 {
+			i := findPeerByAddr(addr, a.peers)
+			if i < 0 {
 				a.peers = append(a.peers, peer{addr: addr})
 			}
 

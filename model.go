@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"net"
 	"time"
 )
@@ -9,6 +9,8 @@ import (
 const (
 	pingMsg  = "ping"
 	helloMsg = "hello"
+
+	aliveTimeoutSecs = 10
 )
 
 type msg struct {
@@ -17,39 +19,39 @@ type msg struct {
 }
 
 type peerState int
+type condition int
 
 const (
 	DISCONECTED = peerState(0)
 	OK          = peerState(1)
-	WELCOMED    = peerState(2)
+	HELLO_DONE  = peerState(2)
 
-	NOTACTIVE = 1
-	ACTIVE    = 2
-	HASADRESS = 3
+	NOTACTIVE = condition(1)
+	ACTIVE    = condition(2)
+	HASADRESS = condition(3)
 )
 
 type peer struct {
-	addr    *net.UDPAddr
-	lastRcv time.Time
-
-	state peerState
+	addr       *net.UDPAddr
+	lastActive time.Time
+	state      peerState
 }
 
-func (p *peer) fsm(cond int) {
+func (p *peer) fsm(cond condition) {
 	switch cond {
 
 	case ACTIVE:
 		if p.state == DISCONECTED {
-			fmt.Println("Peer alive:", p.addr)
+			log.Println("Peer alive:", p.addr)
 		}
-		p.refreshLastRcv()
+		p.refreshLastActive()
 		if p.state == DISCONECTED {
 			p.setState(OK)
 		}
 
 	case NOTACTIVE:
 		if p.state > DISCONECTED {
-			fmt.Println("Lost connect>", p.addr)
+			log.Println("Lost connection:", p.addr)
 			p.setState(DISCONECTED)
 		}
 
@@ -58,35 +60,16 @@ func (p *peer) fsm(cond int) {
 	}
 }
 
-//func (p *peer) updateState_(s int) {
-//	switch s {
-//	case 1:
-//		if p.state == 0 {
-//			fmt.Println("Client alive:", p.addr)
-//		}
-//		p.refreshLastRcv()
-//		if p.state == 0 {
-//			p.setState(1)
-//		}
-//
-//	case 0:
-//		if p.state > 0 {
-//			fmt.Println("Lost connect>", p.addr)
-//			p.setState(0)
-//		}
-//	}
-//}
-
 func (p *peer) setState(s peerState) {
 	p.state = s
 }
 
-func (p *peer) refreshLastRcv() {
-	p.lastRcv = time.Now()
+func (p *peer) refreshLastActive() {
+	p.lastActive = time.Now()
 }
 
 func (p *peer) isAlive() bool {
-	return p.addr != nil && p.lastRcv.Add(10*time.Second).After(time.Now())
+	return p.lastActive.Add(aliveTimeoutSecs * time.Second).After(time.Now())
 }
 
 func findPeerByAddr(addr *net.UDPAddr, pp []peer) int {

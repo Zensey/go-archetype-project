@@ -22,7 +22,7 @@ input the client's public address onto the server console.
 To improve the usability like in the case described above
 a peer broker can be introduced. In such architecture the flow will be different:
 * server registers its address in broker and gets an uid.
-* client gets server address in return to uid
-* client registers its <address, uid> to broker
-* broker propagates peer adress to server with a given uid
+* uid is announced
+* client registers its <address, uid> in broker and gets server address in return 
+* broker propagates peer address to server
  

@@ -10,7 +10,7 @@ const (
 	pingMsg  = "ping"
 	helloMsg = "hello"
 
-	aliveTimeoutSecs = 10
+	aliveTimeoutSecs = 20
 )
 
 type msg struct {
@@ -41,18 +41,16 @@ func (p *peer) fsm(cond condition) {
 	switch cond {
 
 	case ACTIVE:
-		if p.state == DISCONECTED {
-			log.Println("Peer alive:", p.addr)
-		}
 		p.refreshLastActive()
 		if p.state == DISCONECTED {
 			p.setState(OK)
+			log.Println("Peer alive:", p.addr)
 		}
 
 	case NOTACTIVE:
 		if p.state > DISCONECTED {
-			log.Println("Lost connection:", p.addr)
 			p.setState(DISCONECTED)
+			log.Println("Lost connection:", p.addr)
 		}
 
 	default:
@@ -72,8 +70,8 @@ func (p *peer) isAlive() bool {
 	return p.lastActive.Add(aliveTimeoutSecs * time.Second).After(time.Now())
 }
 
-func findPeerByAddr(addr *net.UDPAddr, pp []peer) int {
-	for i, v := range pp {
+func findPeerByAddr(addr *net.UDPAddr, pp *[]peer) int {
+	for i, v := range *pp {
 		if v.addr.String() == addr.String() {
 			return i
 		}
@@ -81,8 +79,8 @@ func findPeerByAddr(addr *net.UDPAddr, pp []peer) int {
 	return -1
 }
 
-func hasAlivePeers(pp []peer) bool {
-	for _, p := range pp {
+func hasAlivePeers(pp *[]peer) bool {
+	for _, p := range *pp {
 		if p.isAlive() {
 			return true
 		}

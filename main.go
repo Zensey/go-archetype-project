@@ -27,7 +27,7 @@ type app struct {
 }
 
 func (a *app) serverLogicKeepAlive() error {
-	if !hasAlivePeers(a.peers) {
+	if !hasAlivePeers(&a.peers) {
 		if err := sendBindingRequest(a.conn, a.stunAddr); err != nil {
 			return err
 		}
@@ -37,7 +37,7 @@ func (a *app) serverLogicKeepAlive() error {
 		if p.addr != nil {
 			switch p.state {
 			case OK:
-				log.Println("Send HELLO:", p.addr)
+				log.Println("Send hello:", p.addr)
 				sendStr(helloMsg, a.conn, p.addr)
 				(&a.peers[i]).setState(HELLO_DONE)
 
@@ -54,7 +54,7 @@ func (a *app) serverLogicKeepAlive() error {
 }
 
 func (a *app) clientLogicKeepAlive() error {
-	if !hasAlivePeers(a.peers) {
+	if !hasAlivePeers(&a.peers) {
 		if err := sendBindingRequest(a.conn, a.stunAddr); err != nil {
 			return err
 		}
@@ -64,6 +64,23 @@ func (a *app) clientLogicKeepAlive() error {
 		sendStr(pingMsg, a.conn, p.addr)
 	}
 	return nil
+}
+
+func (a *app) onStunMsg(msg msg) {
+	xorAddr := stun.XORMappedAddress{}
+
+	err := decodeStunMsg(msg.data, &xorAddr)
+	if err != nil {
+		log.Println("decodeStunMsg:", err)
+	}
+	if a.publicAddr.String() != xorAddr.String() {
+		a.publicAddr = xorAddr
+		if a.isServer {
+			log.Printf("Game started. Players should join with './game -game_server %s'\n", xorAddr)
+		} else {
+			log.Println("Peer public address:", a.publicAddr)
+		}
+	}
 }
 
 func main() {
@@ -86,6 +103,7 @@ func main() {
 	if err != nil {
 		log.Fatalln("resolve serveraddr:", err)
 	}
+
 	a.conn, err = net.ListenUDP(udp, nil)
 	if err != nil {
 		log.Fatalln("dial:", err)
@@ -95,6 +113,7 @@ func main() {
 
 	messageChan := listen(a.conn)
 	peerAddrChan := helperGetPeerAddr()
+	timer := time.Tick(keepaliveMs * time.Millisecond)
 
 	for {
 		select {
@@ -105,7 +124,7 @@ func main() {
 
 			switch {
 			case string(msg.data) == pingMsg:
-				i := findPeerByAddr(msg.addr, a.peers)
+				i := findPeerByAddr(msg.addr, &a.peers)
 				if i < 0 {
 					p := peer{addr: msg.addr}
 					a.peers = append(a.peers, p)
@@ -114,23 +133,10 @@ func main() {
 				(&a.peers[i]).fsm(ACTIVE)
 
 			case string(msg.data) == helloMsg:
-				log.Println("HELLO")
+				log.Println("Hello")
 
 			case stun.IsMessage(msg.data):
-				var xorAddr stun.XORMappedAddress
-				err := decodeStunMsg(msg.data, &xorAddr)
-				if err != nil {
-					log.Println("decodeStunMsg:", err)
-					continue
-				}
-				if a.publicAddr.String() != xorAddr.String() {
-					a.publicAddr = xorAddr
-					if a.isServer {
-						log.Printf("Game started. Players should join with './game -game_server %s'\n", xorAddr)
-					} else {
-						log.Println("Peer public address:", a.publicAddr)
-					}
-				}
+				a.onStunMsg(msg)
 
 			default:
 				log.Panicln("unknown msg", msg)
@@ -141,12 +147,12 @@ func main() {
 			if err != nil {
 				log.Panicln("resolve peeraddr:", err)
 			}
-			i := findPeerByAddr(addr, a.peers)
+			i := findPeerByAddr(addr, &a.peers)
 			if i < 0 {
 				a.peers = append(a.peers, peer{addr: addr})
 			}
 
-		case <-time.Tick(keepaliveMs * time.Millisecond):
+		case <-timer:
 			if a.isServer {
 				err = a.serverLogicKeepAlive()
 			} else {

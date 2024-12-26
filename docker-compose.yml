@@ -1,7 +1,18 @@
-version: '3'
 services:
-  web:
-    build: .
-    ports:
-     - "8080:8080"
-    image: "go-archetype-project"
+  server:
+    build:
+      context: .
+      dockerfile: build/server/Dockerfile
+    image: "server"
+    # entrypoint: [ "/app/server", "-host", "0.0.0.0", "-port", "9999"]
+    command: /app/server -host 0.0.0.0 -port 9999
+
+  client:
+    build:
+      context: .
+      dockerfile: build/client/Dockerfile
+    image: "client"
+    # entrypoint: [ "/app/client", "-host", "server", "-port", "9999"]
+    command: /app/client -host server -port 9999
+    depends_on:
+      - server

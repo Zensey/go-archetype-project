@@ -4,66 +4,74 @@ import (
 	"bufio"
 	"context"
 	"flag"
-	"fmt"
 	"net"
 	"strconv"
+	"strings"
 
 	"github.com/PoW-HC/hashcash/pkg/hash"
 	"github.com/PoW-HC/hashcash/pkg/pow"
+	"github.com/zensey/go-archetype-project/consts"
 	"github.com/zensey/go-archetype-project/protocol"
-)
-
-const (
-	maxIterations = 1 << 30
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 func main() {
 	host := flag.String("host", "localhost", "host of server")
 	port := flag.Int("port", 9999, "server port")
+	quotesCount := flag.Int("count", 1, "number of quotes to get")
 	flag.Parse()
-	address := *host + ":" + strconv.Itoa(*port)
 
-	// Connect to the server
-	conn, err := net.Dial("tcp", address)
-	if err != nil {
-		fmt.Println("Error connecting to server:", err)
-		return
-	}
-	defer conn.Close()
-	fmt.Println("Connected to server at", address)
+	loggerConfig := zap.NewDevelopmentConfig()
+	loggerConfig.Level = zap.NewAtomicLevelAt(zapcore.InfoLevel)
+	logger := zap.Must(loggerConfig.Build())
+	defer logger.Sync()
 
-	// Read the server's challengeStr
-	challengeStr, err := bufio.NewReader(conn).ReadString('\n')
-	if err != nil {
-		fmt.Println("Error reading response:", err)
-		return
-	}
-	// fmt.Printf("Server challenge: %s", challengeStr)
-	challenge, _ := protocol.Unmarshal(challengeStr)
-
-	hasher, err := hash.NewHasher("sha256")
+	hasher, err := hash.NewHasher(consts.HashAlgo)
 	if err != nil {
 		return
 	}
 	powService := pow.New(hasher)
 
-	resp, err := powService.Compute(context.Background(), challenge, maxIterations)
+	address := *host + ":" + strconv.Itoa(*port)
+	logger.Sugar().Debugln("Connect to server ", address)
+	conn, err := net.Dial("tcp", address)
 	if err != nil {
+		logger.Sugar().Errorln("Error connecting to server:", err)
 		return
 	}
-	// fmt.Println("resp:", resp)
+	defer conn.Close()
 
-	// Send the message to the server
-	_, err = conn.Write([]byte(resp.String() + "\n"))
-	if err != nil {
-		fmt.Println("Error sending message:", err)
-		return
-	}
+	reader := bufio.NewReader(conn)
+	for i := 0; i < *quotesCount; i++ {
+		logger.Sugar().Debugln("Begin the flow. Wait for challenge")
+		challengeStr, err := reader.ReadString('\n')
+		if err != nil {
+			logger.Sugar().Errorln("Error reading response:", err)
+			return
+		}
+		logger.Sugar().Debugln("Got a challenge:", challengeStr)
+		challenge, _ := protocol.Unmarshal(challengeStr)
 
-	serverResponse, err := bufio.NewReader(conn).ReadString('\n')
-	if err != nil {
-		fmt.Println("Error reading response:", err)
-		return
+		response, err := powService.Compute(context.Background(), challenge, consts.PoWMaxIterations)
+		if err != nil {
+			logger.Sugar().Errorln("Error computing PoW response:", err)
+			return
+		}
+		logger.Sugar().Debugln("Send response to server:", response)
+		_, err = conn.Write([]byte(response.String() + "\n"))
+		if err != nil {
+			logger.Sugar().Errorln("Error sending message:", err)
+			return
+		}
+
+		logger.Sugar().Debugln("Read a quote from server")
+		serverResponse, err := reader.ReadString('\n')
+		if err != nil {
+			logger.Sugar().Errorln("Error reading response:", err)
+			return
+		}
+		serverResponse = strings.TrimSuffix(serverResponse, "\n")
+		logger.Sugar().Infoln("The quote:", serverResponse)
 	}
-	fmt.Println("Quote:", serverResponse)
 }

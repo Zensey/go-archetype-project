@@ -4,15 +4,13 @@ services:
       context: .
       dockerfile: build/server/Dockerfile
     image: "server"
-    # entrypoint: [ "/app/server", "-host", "0.0.0.0", "-port", "9999"]
-    command: /app/server -host 0.0.0.0 -port 9999
+    command: /app/server -host 0.0.0.0 -port 9999 -quotes /app/assets/quotes.yml
 
   client:
     build:
       context: .
       dockerfile: build/client/Dockerfile
     image: "client"
-    # entrypoint: [ "/app/client", "-host", "server", "-port", "9999"]
-    command: /app/client -host server -port 9999
+    command: /app/client -host server -port 9999 -count=10
     depends_on:
       - server

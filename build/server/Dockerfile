@@ -8,5 +8,5 @@ RUN make server
 FROM scratch
 WORKDIR /app
 COPY --from=builder /app/server /app/server
-COPY --from=builder /app/quotes.yml /app/quotes.yml
+COPY --from=builder /app/assets/quotes.yml /app/assets/quotes.yml
 CMD ["/app/server"]

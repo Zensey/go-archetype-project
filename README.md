@@ -1,18 +1,20 @@
-# go-archetype-project
+# Word of wisdom service
 
-Golang archetype project with following features:
- * Makefile
- * statical code analyzers & checkers,
- * local GOPATH and workplace
- * dependencies got & stored locally and separately from sources
- * use of go dep to automatically find dependencies
+## Run
+```
+docker-compose up
+```
 
- * stringer generator
- * logger helper with levels of logging, string formatting
- * `Dockerfile` and `docker-compose.yml` which allow to boot up application in a single `docker-compose up` command.
+## Design notes
 
-Makefile rules
-* make get-deps
-* make demo
-* make lint
-* make docker-build
+### Why cashhash is used:
+- allows to make server "stateless" no need to remember challenge id, b/c extension field is 
+  authenticated (HMAC) thus making server resilient to replay attack
+- ease of implementation
+- pow complexity is adjustable, however not smoothly
+
+### Design considerations & assumptions.
+- to be able to make e2e test, server has to be shutdown-able (e.g. by means of context)
+- we assume client can do any number of requests in one connection
+- each client request follows is preceded by PoW challenge-response
+- network I/O is the most error prone part, that's why stress e2e test is a must have

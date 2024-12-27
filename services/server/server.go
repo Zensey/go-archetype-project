@@ -1,0 +1,155 @@
+package server
+
+import (
+	"context"
+	"errors"
+	"net"
+	"sync"
+	"time"
+
+	"github.com/PoW-HC/hashcash/pkg/hash"
+	"github.com/PoW-HC/hashcash/pkg/pow"
+	"github.com/zensey/go-archetype-project/protocol"
+	"github.com/zensey/go-archetype-project/services/quotes"
+	"github.com/zensey/go-archetype-project/transport"
+	"go.uber.org/zap"
+)
+
+const (
+	secret              = "secret"
+	bits                = 4
+	defaultChallengeTTL = 30 * time.Second
+)
+
+type Server struct {
+	quoteService  *quotes.Quotes
+	logger        *zap.Logger
+	listenAddress string
+
+	listener            net.Listener
+	hasher              hash.Hasher
+	powService          *pow.POW
+	challengeDifficulty int
+	wg                  sync.WaitGroup
+
+	// readTimeout         time.Duration
+	// collection        QuotesCollection
+	// challengeProvider PoWChallengeProvider
+
+}
+
+func New(quoteService *quotes.Quotes, logger *zap.Logger, listenAddress string) *Server {
+	hasher, err := hash.NewHasher("sha256")
+	if err != nil {
+		return nil
+	}
+	powService := pow.New(hasher, pow.WithChallengeExpDuration(defaultChallengeTTL))
+
+	return &Server{
+		quoteService:  quoteService,
+		logger:        logger,
+		listenAddress: listenAddress,
+		hasher:        hasher,
+		powService:    powService,
+	}
+}
+
+func (s *Server) Shutdown() {
+	s.logger.Sugar().Infoln("Shutdown...")
+	s.listener.Close()
+	s.wg.Wait()
+}
+
+func (s *Server) Start(ctx context.Context) {
+	var err error
+	lc := net.ListenConfig{}
+	s.listener, err = lc.Listen(ctx, "tcp", s.listenAddress)
+
+	if err != nil {
+		s.logger.Sugar().Errorln("Error starting server:", err)
+		return
+	}
+	s.logger.Sugar().Infoln("Server is listening on", s.listenAddress)
+
+	s.wg.Add(1)
+	defer s.wg.Done()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+
+		default:
+			conn, err := s.listener.Accept()
+			if err != nil {
+				if errors.Is(err, net.ErrClosed) {
+					return
+				}
+				s.logger.Sugar().Errorln("Error accepting connection:", err)
+				continue
+			}
+
+			s.logger.Sugar().Debugln("Got connection from", conn.RemoteAddr())
+			s.wg.Add(1)
+			go func() {
+				defer s.wg.Done()
+
+				cw := transport.New(conn)
+				s.handleConnection(cw, ctx)
+			}()
+		}
+	}
+}
+
+func (s *Server) handleConnection(cw *transport.ConnWrapper, ctx context.Context) {
+	defer cw.Close()
+
+	const resource = "quote"
+
+	// we assume client can do any number of requests
+	for {
+		select {
+		case <-ctx.Done():
+			return
+
+		default:
+			s.logger.Sugar().Debugln("Send challenge to", cw.RemoteAddr())
+			challenge, err := pow.InitHashcash(bits, resource, pow.SignExt(secret, s.hasher))
+			if err != nil {
+				s.logger.Sugar().Errorln("Error:", err)
+				return
+			}
+			challengeStr := challenge.String()
+			s.logger.Sugar().Debugln("challenge", challengeStr)
+			err = cw.WriteMessage(challengeStr)
+			if err != nil {
+				s.logger.Sugar().Errorln("Error sending challenge:", err)
+				return
+			}
+
+			responseStr, err := cw.ReadMessage()
+			if err != nil {
+				s.logger.Sugar().Errorln("Connection closed by client:", cw.RemoteAddr())
+				return
+			}
+			s.logger.Sugar().Debugln("Got response message from", cw.RemoteAddr())
+			if responseStr == "bye" {
+				return
+			}
+			response, err := protocol.Unmarshal(responseStr)
+			if err != nil {
+				s.logger.Sugar().Errorln(err)
+				return
+			}
+			err = s.powService.Verify(response, resource)
+			if err != nil {
+				s.logger.Sugar().Errorln("PoW verify err:", err)
+				return
+			}
+			err = cw.WriteMessage(s.quoteService.GetRandomQuote())
+			if err != nil {
+				s.logger.Sugar().Errorln("Error sending quote:", err)
+				return
+			}
+		}
+	}
+}

@@ -22,8 +22,9 @@ func Unmarshal(message string) (*pow.Hashcach, error) {
 	if len(attrs) != 7 {
 		return nil, errWrongFormat
 	}
-	// challenge.Version
-
+	if attrs[0] != "1" {
+		return nil, errWrongFormat
+	}
 
 	ver, err := strconv.Atoi(attrs[0])
 	if err != nil {

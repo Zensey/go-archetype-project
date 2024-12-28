@@ -5,11 +5,13 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-func GetLogger(debug bool) *zap.Logger {
+func GetLogger(level ...zapcore.Level) *zap.Logger {
 	loggerConfig := zap.NewDevelopmentConfig()
-	if !debug {
-		loggerConfig.Level = zap.NewAtomicLevelAt(zapcore.InfoLevel)
+
+	if len(level) > 0 {
+		loggerConfig.Level = zap.NewAtomicLevelAt(level[0])
 	}
+
 	loggerConfig.DisableStacktrace = true
 	logger := zap.Must(loggerConfig.Build())
 	return logger

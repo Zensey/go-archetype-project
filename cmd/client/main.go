@@ -6,6 +6,7 @@ import (
 
 	"github.com/zensey/go-archetype-project/services/client"
 	"github.com/zensey/go-archetype-project/utils"
+	"go.uber.org/zap/zapcore"
 )
 
 func main() {
@@ -15,7 +16,7 @@ func main() {
 	quotesCount := flag.Int("count", 1, "number of quotes to get")
 	flag.Parse()
 
-	logger := utils.GetLogger(false)
+	logger := utils.GetLogger(zapcore.InfoLevel)
 	defer logger.Sync()
 
 	address := *host + ":" + strconv.Itoa(*port)

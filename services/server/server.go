@@ -7,9 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/PoW-HC/hashcash/pkg/hash"
-	"github.com/PoW-HC/hashcash/pkg/pow"
 	"github.com/zensey/go-archetype-project/protocol"
+	"github.com/zensey/go-archetype-project/services/pow_service"
 	"github.com/zensey/go-archetype-project/services/quotes"
 	"github.com/zensey/go-archetype-project/transport"
 	"go.uber.org/zap"
@@ -17,7 +16,6 @@ import (
 
 const (
 	secret              = "secret"
-	bits                = 4
 	defaultChallengeTTL = 30 * time.Second
 )
 
@@ -27,10 +25,9 @@ type Server struct {
 	listenAddress string
 
 	listener            net.Listener
-	hasher              hash.Hasher
-	powService          *pow.POW
-	challengeDifficulty int
 	wg                  sync.WaitGroup
+	challengeDifficulty int
+	powService          *pow_service.PoW
 
 	// readTimeout         time.Duration
 	// collection        QuotesCollection
@@ -38,19 +35,15 @@ type Server struct {
 
 }
 
-func New(quoteService *quotes.Quotes, logger *zap.Logger, listenAddress string) *Server {
-	hasher, err := hash.NewHasher("sha256")
-	if err != nil {
-		return nil
-	}
-	powService := pow.New(hasher, pow.WithChallengeExpDuration(defaultChallengeTTL))
+func New(quoteService *quotes.Quotes, logger *zap.Logger, listenAddress string, challengeDifficulty int) *Server {
+	powService := pow_service.New(challengeDifficulty)
 
 	return &Server{
-		quoteService:  quoteService,
-		logger:        logger,
-		listenAddress: listenAddress,
-		hasher:        hasher,
-		powService:    powService,
+		quoteService:        quoteService,
+		logger:              logger,
+		listenAddress:       listenAddress,
+		powService:          powService,
+		challengeDifficulty: challengeDifficulty,
 	}
 }
 
@@ -105,7 +98,7 @@ func (s *Server) handleConnection(cw *transport.ConnWrapper, ctx context.Context
 
 	const resource = "quote"
 
-	// we assume client can do any number of requests
+	/* we assume client can do any number of requests */
 	for {
 		select {
 		case <-ctx.Done():
@@ -113,12 +106,12 @@ func (s *Server) handleConnection(cw *transport.ConnWrapper, ctx context.Context
 
 		default:
 			s.logger.Sugar().Debugln("Send challenge to", cw.RemoteAddr())
-			challenge, err := pow.InitHashcash(bits, resource, pow.SignExt(secret, s.hasher))
+			challengeStr, err := s.powService.GenerateChallenge(resource)
 			if err != nil {
 				s.logger.Sugar().Errorln("Error:", err)
 				return
 			}
-			challengeStr := challenge.String()
+
 			s.logger.Sugar().Debugln("challenge", challengeStr)
 			err = cw.WriteMessage(challengeStr)
 			if err != nil {
@@ -140,7 +133,7 @@ func (s *Server) handleConnection(cw *transport.ConnWrapper, ctx context.Context
 				s.logger.Sugar().Errorln(err)
 				return
 			}
-			err = s.powService.Verify(response, resource)
+			err = s.powService.VerifyResponse(response, resource)
 			if err != nil {
 				s.logger.Sugar().Errorln("PoW verify err:", err)
 				return

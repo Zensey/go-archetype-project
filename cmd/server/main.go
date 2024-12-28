@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"os/signal"
 	"strconv"
 	"syscall"
@@ -11,15 +10,18 @@ import (
 	"github.com/zensey/go-archetype-project/services/quotes"
 	"github.com/zensey/go-archetype-project/services/server"
 	"github.com/zensey/go-archetype-project/utils"
+	"go.uber.org/zap/zapcore"
 )
 
 func main() {
 	host := flag.String("host", "localhost", "host of server")
 	port := flag.Int("port", 9999, "server port")
 	quotesFile := flag.String("quotes", "quotes.yml", "quotes yml file")
+	challengeDifficulty := flag.Int("dif", 4, "PoW challenge difficulty, >=1, default value is 4")
+
 	flag.Parse()
 
-	logger := utils.GetLogger(true)
+	logger := utils.GetLogger(zapcore.InfoLevel)
 	defer logger.Sync()
 
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -34,7 +36,12 @@ func main() {
 		return
 	}
 	quoteService := quotes.New(qoutesCollection)
-	srv := server.New(quoteService, logger, listenAddress)
+
+	if *challengeDifficulty < 1 {
+		logger.Sugar().Errorln("Wrong difficulty:")
+		return
+	}
+	srv := server.New(quoteService, logger, listenAddress, *challengeDifficulty)
 	go srv.Start(ctx)
 
 	<-ctx.Done()

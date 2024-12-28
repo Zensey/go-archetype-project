@@ -4,11 +4,10 @@ import (
 	"context"
 	"net"
 
-	"github.com/PoW-HC/hashcash/pkg/hash"
-	"github.com/PoW-HC/hashcash/pkg/pow"
-	"github.com/zensey/go-archetype-project/consts"
 	"github.com/zensey/go-archetype-project/protocol"
+	"github.com/zensey/go-archetype-project/services/pow_service"
 	"github.com/zensey/go-archetype-project/transport"
+
 	"go.uber.org/zap"
 )
 
@@ -16,41 +15,35 @@ type Client struct {
 	logger        *zap.Logger
 	listenAddress string
 	quotesCount   int
-	hasher        hash.Hasher
-	powService    *pow.POW
+	powService    *pow_service.PoW
 }
 
 func New(logger *zap.Logger, listenAddress string, quotesCount int) *Client {
-	hasher, err := hash.NewHasher("sha256")
-	if err != nil {
-		return nil
-	}
-	powService := pow.New(hasher)
+	powService := pow_service.New(0)
 
 	return &Client{
 		logger:        logger,
 		listenAddress: listenAddress,
-		hasher:        hasher,
 		powService:    powService,
 		quotesCount:   quotesCount,
 	}
 }
 
-func (c *Client) Run() {
+func (c *Client) Run() error {
 	c.logger.Sugar().Debugln("Connect to server ", c.listenAddress)
 	conn, err := net.Dial("tcp", c.listenAddress)
 	if err != nil {
 		c.logger.Sugar().Errorln("Error connecting to server:", err)
-		return
+		return err
 	}
 
 	cw := transport.New(conn)
 	defer cw.Close()
 
 	for i := 0; i < c.quotesCount; i++ {
-		err := makeRequest(c.logger, c.powService, cw)
+		err := c.requestQuote(c.logger, c.powService, cw)
 		if err != nil {
-			break
+			return err
 		}
 	}
 
@@ -58,15 +51,17 @@ func (c *Client) Run() {
 	_, err = cw.ReadMessage()
 	if err != nil {
 		c.logger.Sugar().Errorln("Error reading msg:", err)
-		return
+		return err
 	}
 	err = cw.WriteMessage("bye")
 	if err != nil {
 		c.logger.Sugar().Errorln("Error sending message:", err)
+		return err
 	}
+	return nil
 }
 
-func makeRequest(logger *zap.Logger, powService *pow.POW, cw *transport.ConnWrapper) error {
+func (c *Client) requestQuote(logger *zap.Logger, powService *pow_service.PoW, cw *transport.ConnWrapper) error {
 	logger.Sugar().Debugln("Begin the flow. Wait for challenge")
 	challengeStr, err := cw.ReadMessage()
 	if err != nil {
@@ -80,13 +75,13 @@ func makeRequest(logger *zap.Logger, powService *pow.POW, cw *transport.ConnWrap
 		return err
 	}
 
-	response, err := powService.Compute(context.Background(), challenge, consts.PoWComputeMaxIterations)
+	responseStr, err := c.powService.ComputeResponse(context.Background(), challenge)
 	if err != nil {
 		logger.Sugar().Errorln("Error computing PoW response:", err)
 		return err
 	}
-	logger.Sugar().Debugln("Send response to server:", response)
-	err = cw.WriteMessage(response.String())
+	logger.Sugar().Debugln("Send response to server:", responseStr)
+	err = cw.WriteMessage(responseStr)
 	if err != nil {
 		logger.Sugar().Errorln("Error sending response:", err)
 		return err

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/zensey/go-archetype-project/services/client"
+	"github.com/zensey/go-archetype-project/services/pow_service"
 	"github.com/zensey/go-archetype-project/services/quotes"
 	"github.com/zensey/go-archetype-project/services/server"
 	"github.com/zensey/go-archetype-project/utils"
@@ -15,11 +16,11 @@ import (
 // Stress server by running multiple clients sending multiple requests
 func TestMultipleClients(t *testing.T) {
 	listenAddress := "localhost:9999"
-	quotesCount := 100
+	quotesCount := 200
 	challengeDifficulty := 2
 
-	serverLogger := utils.GetLogger(zapcore.InfoLevel)
-	defer serverLogger.Sync()
+	logger := utils.GetLogger(zapcore.InfoLevel)
+	defer logger.Sync()
 	clientLogger := utils.GetLogger(zapcore.ErrorLevel)
 	defer clientLogger.Sync()
 
@@ -29,22 +30,36 @@ func TestMultipleClients(t *testing.T) {
 	quotesFile := "../assets/quotes.yml"
 	qoutesCollection, err := utils.LoadFromYaml(quotesFile)
 	if err != nil {
-		serverLogger.Sugar().Errorln("Error loading quotes:", err)
+		logger.Sugar().Errorln("Error loading quotes:", err)
+		t.Fail()
 		return
 	}
 	quoteService := quotes.New(qoutesCollection)
-	srv := server.New(quoteService, serverLogger, listenAddress, challengeDifficulty)
-	go srv.Start(ctx)
+	powService := pow_service.New(challengeDifficulty)
 
+	srv := server.New(quoteService, logger, listenAddress, powService)
+	if err := srv.Start(ctx); err != nil {
+		logger.Sugar().Errorln("Error starting server:", err)
+		t.Fail()
+		return
+	}
+
+	var errCount int
 	var wg sync.WaitGroup
-	for i := 0; i < 16; i++ {
-		c := client.New(clientLogger, listenAddress, quotesCount)
+	for i := 0; i < 10; i++ {
+		c := client.New(clientLogger, listenAddress, quotesCount, powService)
 		wg.Add(1)
 		go func() {
-			c.Run()
+			if err := c.Run(); err != nil {
+				errCount++
+			}
 			wg.Done()
 		}()
 	}
 	wg.Wait()
 	srv.Shutdown()
+
+	if errCount > 0 {
+		t.Fail()
+	}
 }

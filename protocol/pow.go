@@ -11,7 +11,11 @@ import (
 )
 
 var (
-	errWrongFormat = errors.New("wrong msg format")
+	ErrWrongFormat = errors.New("wrong msg format")
+)
+
+const (
+	MsgQueryEndSession = "bye"
 )
 
 // Message - string presentation of hashcash
@@ -20,10 +24,10 @@ func Unmarshal(message string) (*pow.Hashcach, error) {
 
 	attrs := strings.Split(message, ":")
 	if len(attrs) != 7 {
-		return nil, errWrongFormat
+		return nil, ErrWrongFormat
 	}
 	if attrs[0] != "1" {
-		return nil, errWrongFormat
+		return nil, ErrWrongFormat
 	}
 
 	ver, err := strconv.Atoi(attrs[0])

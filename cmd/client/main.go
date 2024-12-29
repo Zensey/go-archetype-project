@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/zensey/go-archetype-project/services/client"
+	"github.com/zensey/go-archetype-project/services/pow_service"
 	"github.com/zensey/go-archetype-project/utils"
 	"go.uber.org/zap/zapcore"
 )
@@ -19,7 +20,9 @@ func main() {
 	logger := utils.GetLogger(zapcore.InfoLevel)
 	defer logger.Sync()
 
+	powService := pow_service.New(0)
+
 	address := *host + ":" + strconv.Itoa(*port)
-	c := client.New(logger, address, *quotesCount)
+	c := client.New(logger, address, *quotesCount, powService)
 	c.Run()
 }

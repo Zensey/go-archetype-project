@@ -4,16 +4,16 @@ import (
 	"math/rand"
 )
 
-type Quotes struct {
+type QuoteRepo struct {
 	Data []string
 }
 
-func New(collection []string) *Quotes {
-	return &Quotes{
+func New(collection []string) *QuoteRepo {
+	return &QuoteRepo{
 		Data: collection,
 	}
 }
 
-func (q *Quotes) GetRandomQuote() string {
+func (q *QuoteRepo) GetRandomQuote() string {
 	return q.Data[rand.Intn(len(q.Data))]
 }

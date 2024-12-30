@@ -15,64 +15,71 @@ import (
 
 // Simulate a sitation with an end of session initiated by client
 func TestEndOfSessionCase(t *testing.T) {
-	logger := utils.GetLogger(zapcore.InfoLevel)
+	logger := utils.GetLogger(zapcore.DebugLevel)
 	defer logger.Sync()
 
 	qoutesCollection := []string{"quote 1", "quote 2"}
 	quoteService := quotes.New(qoutesCollection)
 	challengeDifficulty := 2
-	powService := pow_service.New(challengeDifficulty)
+	powService := pow_service.New(challengeDifficulty, "secret")
 
 	// mock network connection
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	m := mocks.NewMockIConnWrapper(ctrl)
+	mock := mocks.NewMockIConnWrapper(ctrl)
 
-	m.EXPECT().
+	mock.EXPECT().
 		RemoteAddr().
 		Return("127.0.0.1:11111").
 		AnyTimes()
-	m.EXPECT().
-		WriteMessage(gomock.Any()).
-		Return(nil)
-	m.EXPECT().
+	mock.EXPECT().
 		ReadMessage().
-		Return(protocol.MsgQueryEndSession, nil)
+		Return(protocol.MsgEndSession, nil)
 
 	resourse := "res"
-	err := protocol.ServerProtocolHandler(logger, quoteService, powService, m, resourse)
-	if err != protocol.ErrEndSession {
+	err := protocol.ServerProtocolHandler(logger, quoteService, powService, mock, resourse)
+	if err != protocol.ErrEndSessionOK {
 		t.Fail()
 	}
 }
 
 // Simulate a situation with a wrong response from client
 func TestWrongResponse(t *testing.T) {
-	logger, _ := utils.SetupLogsCapture()
+	logger := utils.GetLogger(zapcore.DebugLevel)
 	defer logger.Sync()
 
 	qoutesCollection := []string{"quote 1", "quote 2"}
 	quoteService := quotes.New(qoutesCollection)
-	powService := pow_service.New(2)
+	powService := pow_service.New(2, "secret")
 
 	// mock network connection
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	m := mocks.NewMockIConnWrapper(ctrl)
+	mock := mocks.NewMockIConnWrapper(ctrl)
 
-	m.EXPECT().
+	mock.EXPECT().
 		RemoteAddr().
 		Return("127.0.0.1:11111").
 		AnyTimes()
-	m.EXPECT().
+
+	mock.EXPECT().
+		ReadMessage().
+		Return(protocol.MsgQueryQuote, nil)
+	mock.EXPECT().
+		WriteMessage(gomock.Eq(protocol.MsgChallenge)).
+		Return(nil)
+	mock.EXPECT().
 		WriteMessage(gomock.Any()).
 		Return(nil)
-	m.EXPECT().
+	mock.EXPECT().
+		ReadMessage().
+		Return(protocol.MsgResponse, nil)
+	mock.EXPECT().
 		ReadMessage().
 		Return("1:xxxxxxxxx:yyyyyyyyyyy:zzzzzzzzzzz", nil)
 
 	resourse := "res"
-	err := protocol.ServerProtocolHandler(logger, quoteService, powService, m, resourse)
+	err := protocol.ServerProtocolHandler(logger, quoteService, powService, mock, resourse)
 	if err != protocol.ErrWrongFormat {
 		t.Fail()
 	}
@@ -81,30 +88,40 @@ func TestWrongResponse(t *testing.T) {
 // Simulate a situation with a correct response from client
 func TestCorrectResponse(t *testing.T) {
 
-	logger := utils.GetLogger(zapcore.InfoLevel)
+	logger := utils.GetLogger(zapcore.DebugLevel)
 	defer logger.Sync()
 
 	qoutesCollection := []string{"quote1"}
 	quoteService := quotes.New(qoutesCollection)
-	powService := pow_service.New(2)
+	powService := pow_service.New(2, "secret")
 
 	// mock network connection
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	m := mocks.NewMockIConnWrapper(ctrl)
+	mock := mocks.NewMockIConnWrapper(ctrl)
 	var challenge string
 
-	m.EXPECT().
+	mock.EXPECT().
 		RemoteAddr().
 		Return("127.0.0.1:11111").
 		AnyTimes()
-	m.EXPECT().
+	mock.EXPECT().
+		ReadMessage().
+		Return(protocol.MsgQueryQuote, nil)
+	mock.EXPECT().
+		WriteMessage(gomock.Eq(protocol.MsgChallenge)).
+		Return(nil)
+	mock.EXPECT().
 		WriteMessage(gomock.Any()).
 		DoAndReturn(func(msg string) error {
-			challenge = msg // capture a challenge
+			/* capture a challenge */
+			challenge = msg
 			return nil
 		})
-	m.EXPECT().
+	mock.EXPECT().
+		ReadMessage().
+		Return(protocol.MsgResponse, nil)
+	mock.EXPECT().
 		ReadMessage().
 		DoAndReturn(func() (string, error) {
 			h, err := protocol.Unmarshal(challenge)
@@ -117,12 +134,15 @@ func TestCorrectResponse(t *testing.T) {
 			}
 			return resp, nil
 		})
-	m.EXPECT().
+	mock.EXPECT().
+		WriteMessage(gomock.Eq(protocol.MsgQueryQuoteResponse)).
+		Return(nil)
+	mock.EXPECT().
 		WriteMessage(gomock.Eq(qoutesCollection[0])).
 		Return(nil)
 
 	resourse := "res"
-	err := protocol.ServerProtocolHandler(logger, quoteService, powService, m, resourse)
+	err := protocol.ServerProtocolHandler(logger, quoteService, powService, mock, resourse)
 	if err != nil {
 		t.Fail()
 	}

@@ -3,6 +3,7 @@ package e2e
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/zensey/go-archetype-project/services/client"
@@ -14,9 +15,9 @@ import (
 )
 
 // Stress server by running multiple clients sending multiple requests
-func TestMultipleClients(t *testing.T) {
+func TestE2EMultipleClients(t *testing.T) {
 	listenAddress := "localhost:9999"
-	quotesCount := 200
+	quotesCount := 100
 	challengeDifficulty := 2
 
 	logger := utils.GetLogger(zapcore.InfoLevel)
@@ -35,7 +36,7 @@ func TestMultipleClients(t *testing.T) {
 		return
 	}
 	quoteService := quotes.New(qoutesCollection)
-	powService := pow_service.New(challengeDifficulty)
+	powService := pow_service.New(challengeDifficulty, "secret")
 
 	srv := server.New(quoteService, logger, listenAddress, powService)
 	if err := srv.Start(ctx); err != nil {
@@ -44,14 +45,14 @@ func TestMultipleClients(t *testing.T) {
 		return
 	}
 
-	var errCount int
+	var errCount atomic.Uint32
 	var wg sync.WaitGroup
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 20; i++ {
 		c := client.New(clientLogger, listenAddress, quotesCount, powService)
 		wg.Add(1)
 		go func() {
 			if err := c.Run(); err != nil {
-				errCount++
+				errCount.Add(1)
 			}
 			wg.Done()
 		}()
@@ -59,7 +60,7 @@ func TestMultipleClients(t *testing.T) {
 	wg.Wait()
 	srv.Shutdown()
 
-	if errCount > 0 {
+	if errCount.Load() > 0 {
 		t.Fail()
 	}
 }

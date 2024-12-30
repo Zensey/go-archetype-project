@@ -4,6 +4,8 @@ services:
       context: .
       dockerfile: build/server/Dockerfile
     image: "server"
+    environment:
+      - SECRET=my_secret_key
     command: /app/server -host 0.0.0.0 -port 9999 -quotes /app/assets/quotes.yml
 
   client:

@@ -20,7 +20,7 @@ func main() {
 	logger := utils.GetLogger(zapcore.InfoLevel)
 	defer logger.Sync()
 
-	powService := pow_service.New(0)
+	powService := pow_service.New(0, "")
 
 	address := *host + ":" + strconv.Itoa(*port)
 	c := client.New(logger, address, *quotesCount, powService)

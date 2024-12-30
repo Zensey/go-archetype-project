@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"os"
 	"os/signal"
 	"strconv"
 	"syscall"
@@ -19,7 +20,10 @@ func main() {
 	port := flag.Int("port", 9999, "server port")
 	quotesFile := flag.String("quotes", "quotes.yml", "quotes yml file")
 	challengeDifficulty := flag.Int("dif", 5, "PoW challenge difficulty")
-
+	secret := flag.String("secret", "secret", "PoW challenge auth secret")
+	if os.Getenv("AUTH_SECRET") != "" {
+		*secret = os.Getenv("AUTH_SECRET")
+	}
 	flag.Parse()
 
 	logger := utils.GetLogger(zapcore.InfoLevel)
@@ -42,9 +46,9 @@ func main() {
 		logger.Sugar().Errorln("Wrong PoW challenge difficulty:", *challengeDifficulty)
 		return
 	}
-	powService := pow_service.New(*challengeDifficulty)
+	powService := pow_service.New(*challengeDifficulty, *secret)
 
-	srv := server.New(quoteService, logger, listenAddress, powService)	
+	srv := server.New(quoteService, logger, listenAddress, powService)
 	if err := srv.Start(ctx); err != nil {
 		logger.Sugar().Errorln("Error starting server:", err)
 		return

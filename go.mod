@@ -1,13 +1,17 @@
 module github.com/zensey/go-archetype-project
 
-go 1.12
+go 1.20
 
 require (
-	github.com/PoW-HC/hashcash v0.0.1 // indirect
-	github.com/Zensey/slog v1.0.1-0.20200720031627-bc8ac5187edc
-	github.com/bwesterb/go-pow v1.0.0 // indirect
-	github.com/golang/mock v1.6.0 // indirect
-	go.uber.org/mock v0.5.0
+	github.com/PoW-HC/hashcash v0.0.1
+	github.com/golang/mock v1.6.0
 	go.uber.org/zap v1.27.0
 	gopkg.in/yaml.v2 v2.4.0
+)
+
+require (
+	github.com/klauspost/cpuid/v2 v2.0.12 // indirect
+	github.com/minio/sha256-simd v1.0.0 // indirect
+	github.com/stretchr/testify v1.9.0 // indirect
+	go.uber.org/multierr v1.10.0 // indirect
 )

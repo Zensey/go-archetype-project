@@ -15,9 +15,14 @@ var (
 )
 
 const (
-	MsgQueryEndSession = "bye"
+	MsgEndSession         = "bye"
+	MsgQueryQuote         = "get-quote"
+	MsgQueryQuoteResponse = "quote"
+	MsgChallenge          = "challenge"
+	MsgResponse           = "response"
 )
 
+// Unmarshall - unmarshalls challenge/response payload
 // Message - string presentation of hashcash
 // Format  - 1:bits:date:resource:externsion:rand:counter
 func Unmarshal(message string) (*pow.Hashcach, error) {

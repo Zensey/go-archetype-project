@@ -12,7 +12,6 @@ import (
 
 func main() {
 	observer := eth.New()
-	//observer.Subscribe("0x0a05bc5728218e565cf16dae82b2fd4d439dacf6")
 	observer.Start()
 
 	sigs := make(chan os.Signal, 1)

@@ -1,18 +1,12 @@
-# go-archetype-project
+# tx parser
 
-Golang archetype project with following features:
- * Makefile
- * statical code analyzers & checkers,
- * local GOPATH and workplace
- * dependencies got & stored locally and separately from sources
- * use of go dep to automatically find dependencies
+## Run
+```
+make txparser
+./txparser
+```
 
- * stringer generator
- * logger helper with levels of logging, string formatting
- * `Dockerfile` and `docker-compose.yml` which allow to boot up application in a single `docker-compose up` command.
-
-Makefile rules
-* make get-deps
-* make demo
-* make lint
-* make docker-build
+API
+* curl http://localhost:8181/current-block
+* curl -d "address=0x0a05bc5728218e565cf16dae82b2fd4d439dacf7" -X POST http://localhost:8181/subscribe
+* curl http://localhost:8181/transactions

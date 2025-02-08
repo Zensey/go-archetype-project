@@ -9,10 +9,6 @@ lint_report.txt
 _obj
 _test
 
-src/mvdan.cc
-src/honnef.co
-src/github.com
-
 *.exe
 *.test
 *.prof

@@ -30,8 +30,12 @@ func New() *Observer {
 		txmap:    make(map[string][]service.Transaction),
 	}
 
-	p.currentBlockID.Store(21604851) //0x1b4)
+	p.SetCurrentBlockID(0x1b4)
 	return p
+}
+
+func (p *Observer) SetCurrentBlockID(id int) {
+	p.currentBlockID.Store(int32(id))	
 }
 
 func (p *Observer) Start() {

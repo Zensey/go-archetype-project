@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"net/http"
 	"os"
 	"os/signal"
@@ -11,10 +12,18 @@ import (
 )
 
 func main() {
+	adr := flag.String("adr", "", "subscribe to a given address (only one value)")
+	block := flag.Int("block", 0, "start scan from a given block")
+	flag.Parse()
+
 	observer := eth.New()
-	//observer.Subscribe("0x0a05bc5728218e565cf16dae82b2fd4d439dacf6")
-	//observer.SetCurrentBlockID(21604851)
-	
+	if *adr != "" {
+		observer.Subscribe(*adr)
+	}
+	if *block != 0 {
+		observer.SetCurrentBlockID(*block)
+	}
+
 	observer.Start()
 
 	sigs := make(chan os.Signal, 1)

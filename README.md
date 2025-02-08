@@ -4,6 +4,12 @@
 ```
 make txparser; ./txparser
 ```
+##
+Run with one subscription and a relevant initial block, so the scanning will start immediately
+```
+./txparser -adr 0x0a05bc5728218e565cf16dae82b2fd4d439dacf6 -block 21604851
+```
+
 
 ## API (example)
 * curl http://localhost:8181/current-block

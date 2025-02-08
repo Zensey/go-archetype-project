@@ -116,6 +116,8 @@ type BlockWithTransactions struct {
 }
 
 func GetLastFinalizedBlockID() (int, error) {
+	log.Printf("GetLastFinalizedBlockID!")
+
 	req := EthRequest{
 		ID:      0,
 		JSONRPC: "2.0",
@@ -155,7 +157,7 @@ func GetLastFinalizedBlockID() (int, error) {
 }
 
 func GetBlock(blockID int) (BlockWithTransactions, error) {
-	log.Printf("GetBlock 0x%x", blockID)
+	log.Printf("GetBlock! 0x%x", blockID)
 	block := BlockWithTransactions{}
 
 	req := EthRequest{

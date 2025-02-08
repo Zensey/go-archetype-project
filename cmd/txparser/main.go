@@ -9,6 +9,7 @@ import (
 
 	"github.com/Zensey/go-archetype-project/service/eth"
 	"github.com/Zensey/go-archetype-project/service/handlers"
+	"github.com/Zensey/go-archetype-project/service/store"
 )
 
 func main() {
@@ -16,7 +17,9 @@ func main() {
 	block := flag.Int("block", 0, "start scan from a given block")
 	flag.Parse()
 
-	observer := eth.New()
+	txStore := store.New()
+	observer := eth.New(txStore)
+	
 	if *adr != "" {
 		observer.Subscribe(*adr)
 	}

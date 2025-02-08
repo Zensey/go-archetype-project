@@ -18,24 +18,23 @@ type Observer struct {
 	shutdown chan empty
 
 	currentBlockID atomic.Int32
-	
-	mu             sync.Mutex 
+	mu             sync.Mutex
 	addresses      []string
-	txmap          map[string][]service.Transaction
+
+	txStore service.TxStore
 }
 
-func New() *Observer {
+func New(txStore service.TxStore) *Observer {
 	p := &Observer{
 		shutdown: make(chan empty),
-		txmap:    make(map[string][]service.Transaction),
+		txStore:  txStore,
 	}
-
 	p.SetCurrentBlockID(0x1b4)
 	return p
 }
 
 func (p *Observer) SetCurrentBlockID(id int) {
-	p.currentBlockID.Store(int32(id))	
+	p.currentBlockID.Store(int32(id))
 }
 
 func (p *Observer) Start() {
@@ -62,8 +61,8 @@ func (p *Observer) startPoller() {
 			return
 		}
 
-		// if no addresses then do nothing
-		if len(p.addresses) == 0 {
+		// if no addresses then sleep
+		if p.getAddressesLen() == 0 {
 			continue
 		}
 
@@ -92,7 +91,7 @@ func (p *Observer) startPoller() {
 					normalized := raw.Quo(raw, new(big.Float).SetInt(protocol.Eth1()))
 					value, _ := normalized.Float32()
 
-					p.txmap[adr] = append(p.txmap[adr], service.Transaction{
+					p.txStore.AddTx(adr, service.Transaction{
 						Hash:  t.Hash,
 						From:  t.From,
 						To:    t.To,
@@ -107,6 +106,13 @@ func (p *Observer) startPoller() {
 	}
 }
 
+func (p *Observer) getAddressesLen() int {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	return len(p.addresses)
+}
+
 // last parsed block
 func (p *Observer) GetCurrentBlock() int {
 	return int(p.currentBlockID.Load())
@@ -115,6 +121,8 @@ func (p *Observer) GetCurrentBlock() int {
 // add address to observer
 func (p *Observer) Subscribe(address string) bool {
 	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	has := false
 	for _, adr := range p.addresses {
 		if adr == address {
@@ -125,11 +133,10 @@ func (p *Observer) Subscribe(address string) bool {
 	if !has {
 		p.addresses = append(p.addresses, strings.ToLower(address))
 	}
-	p.mu.Unlock()
 	return !has
 }
 
 // list of inbound or outbound transactions for an address
 func (p *Observer) GetTransactions(address string) []service.Transaction {
-	return p.txmap[address]
+	return p.txStore.GetTransactions(address)
 }
